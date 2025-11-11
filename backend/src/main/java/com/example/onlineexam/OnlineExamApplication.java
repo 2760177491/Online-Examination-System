@@ -1,4 +1,4 @@
-package backend.src.main.java.com.example.onlineexam;
+package com.example.onlineexam;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

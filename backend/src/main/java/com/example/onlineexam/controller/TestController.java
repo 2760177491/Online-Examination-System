@@ -1,4 +1,4 @@
-package backend.src.main.java.com.example.onlineexam.controller;
+package com.example.onlineexam.controller;
 
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
