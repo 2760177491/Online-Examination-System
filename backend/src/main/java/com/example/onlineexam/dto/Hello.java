@@ -1,4 +1,4 @@
-package com.onlineexam.dto;
+package src.main.java.com.onlineexam.dto;
 
 public class Hello {
     public static void main(String[] args) {
