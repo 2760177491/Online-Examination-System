@@ -1,7 +1,7 @@
 package com.example.onlineexam.entity;
 
 import lombok.Data;
-import javax.persistence.*;
+import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
 @Data
@@ -29,6 +29,3 @@ public class User {
     private LocalDateTime createdTime;
 }
 
-enum UserRole {
-    TEACHER, STUDENT
-}
