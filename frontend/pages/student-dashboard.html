@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>学生仪表板 - 在线考试系统</title>
+    <link href="../css/bootstrap.min.css" rel="stylesheet">
+    <link href="../css/style.css" rel="stylesheet">
+</head>
+<body>
+<nav class="navbar navbar-expand-lg navbar-dark bg-success">
+    <div class="container">
+        <a class="navbar-brand" href="../index.html">在线考试系统</a>
+        <div class="navbar-nav ms-auto">
+            <span class="navbar-text me-3" id="userInfo">欢迎，学生</span>
+            <button class="btn btn-outline-light btn-sm" onclick="logout()">退出</button>
+        </div>
+    </div>
+</nav>
+
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-header">
+                    <h5>功能菜单</h5>
+                </div>
+                <div class="card-body">
+                    <div class="list-group">
+                        <a href="#" class="list-group-item list-group-item-action active" onclick="showSection('dashboard')">仪表板</a>
+                        <a href="#" class="list-group-item list-group-item-action" onclick="showSection('availableExams')">可参加考试</a>
+                        <a href="#" class="list-group-item list-group-item-action" onclick="showSection('examHistory')">考试历史</a>
+                        <a href="#" class="list-group-item list-group-item-action" onclick="showSection('myGrades')">我的成绩</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-9">
+            <div id="dashboardSection" class="content-section">
+                <div class="card">
+                    <div class="card-header">
+                        <h4>学生工作台</h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <div class="card text-white bg-primary">
+                                    <div class="card-body">
+                                        <h5 id="availableExamCount">0</h5>
+                                        <p>可参加考试</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <div class="card text-white bg-success">
+                                    <div class="card-body">
+                                        <h5 id="completedExamCount">0</h5>
+                                        <p>已完成考试</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <div class="card text-white bg-info">
+                                    <div class="card-body">
+                                        <h5 id="averageScore">0</h5>
+                                        <p>平均分数</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 其他部分 -->
+            <div id="availableExamsSection" class="content-section" style="display: none;">
+                <div class="card">
+                    <div class="card-header">
+                        <h4>可参加考试</h4>
+                    </div>
+                    <div class="card-body">
+                        <p>可参加考试功能开发中...</p>
+                    </div>
+                </div>
+            </div>
+
+            <div id="examHistorySection" class="content-section" style="display: none;">
+                <div class="card">
+                    <div class="card-header">
+                        <h4>考试历史</h4>
+                    </div>
+                    <div class="card-body">
+                        <p>考试历史功能开发中...</p>
+                    </div>
+                </div>
+            </div>
+
+            <div id="myGradesSection" class="content-section" style="display: none;">
+                <div class="card">
+                    <div class="card-header">
+                        <h4>我的成绩</h4>
+                    </div>
+                    <div class="card-body">
+                        <p>成绩查看功能开发中...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="../js/bootstrap.bundle.min.js"></script>
+<script src="../js/student-dashboard.js"></script>
+</body>
+</html>

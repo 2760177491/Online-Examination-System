@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>教师仪表板 - 在线考试系统</title>
+    <link href="../css/bootstrap.min.css" rel="stylesheet">
+    <link href="../css/style.css" rel="stylesheet">
+</head>
+<body>
+<nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+    <div class="container">
+        <a class="navbar-brand" href="../index.html">在线考试系统</a>
+        <div class="navbar-nav ms-auto">
+            <span class="navbar-text me-3" id="userInfo">欢迎，教师</span>
+            <button class="btn btn-outline-light btn-sm" onclick="logout()">退出</button>
+        </div>
+    </div>
+</nav>
+
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-header">
+                    <h5>功能菜单</h5>
+                </div>
+                <div class="card-body">
+                    <div class="list-group">
+                        <a href="#" class="list-group-item list-group-item-action active" onclick="showSection('dashboard')">仪表板</a>
+                        <a href="#" class="list-group-item list-group-item-action" onclick="showSection('questionBank')">题库管理</a>
+                        <a href="#" class="list-group-item list-group-item-action" onclick="showSection('examManage')">试卷管理</a>
+                        <a href="#" class="list-group-item list-group-item-action" onclick="showSection('gradeManage')">成绩管理</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-9">
+            <!-- 仪表板内容 -->
+            <div id="dashboardSection" class="content-section">
+                <div class="card">
+                    <div class="card-header">
+                        <h4>教师工作台</h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-3 mb-3">
+                                <div class="card text-white bg-primary">
+                                    <div class="card-body">
+                                        <h5 id="questionCount">0</h5>
+                                        <p>题目数量</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <div class="card text-white bg-success">
+                                    <div class="card-body">
+                                        <h5 id="examCount">0</h5>
+                                        <p>试卷数量</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <div class="card text-white bg-warning">
+                                    <div class="card-body">
+                                        <h5 id="studentCount">0</h5>
+                                        <p>学生数量</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <div class="card text-white bg-info">
+                                    <div class="card-body">
+                                        <h5 id="activeExamCount">0</h5>
+                                        <p>进行中考试</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 题库管理内容 -->
+            <div id="questionBankSection" class="content-section" style="display: none;">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h4>题库管理</h4>
+                        <button class="btn btn-primary btn-sm" onclick="showAddQuestionModal()">添加题目</button>
+                    </div>
+                    <div class="card-body">
+                        <table class="table table-striped">
+                            <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>题目内容</th>
+                                <th>题型</th>
+                                <th>难度</th>
+                                <th>操作</th>
+                            </tr>
+                            </thead>
+                            <tbody id="questionTable">
+                            <!-- 题目数据将通过JavaScript动态加载 -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 其他部分先留空 -->
+            <div id="examManageSection" class="content-section" style="display: none;">
+                <div class="card">
+                    <div class="card-header">
+                        <h4>试卷管理</h4>
+                    </div>
+                    <div class="card-body">
+                        <p>试卷管理功能开发中...</p>
+                    </div>
+                </div>
+            </div>
+
+            <div id="gradeManageSection" class="content-section" style="display: none;">
+                <div class="card">
+                    <div class="card-header">
+                        <h4>成绩管理</h4>
+                    </div>
+                    <div class="card-body">
+                        <p>成绩管理功能开发中...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="../js/bootstrap.bundle.min.js"></script>
+<script src="../js/teacher-dashboard.js"></script>
+</body>
+</html>
