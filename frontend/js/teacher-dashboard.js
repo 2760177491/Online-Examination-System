@@ -1,5 +1,5 @@
 // 教师仪表板功能
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     checkLoginStatus();
     loadDashboardData();
 });
@@ -40,9 +40,9 @@ async function loadQuestions() {
     try {
         // 模拟题目数据
         const questions = [
-            { id: 1, content: 'Java是一种什么类型的编程语言？', type: 'SINGLE_CHOICE', difficulty: 'EASY' },
-            { id: 2, content: '下面哪些是Spring框架的核心模块？', type: 'MULTIPLE_CHOICE', difficulty: 'MEDIUM' },
-            { id: 3, content: 'HTML是编程语言。', type: 'TRUE_FALSE', difficulty: 'EASY' }
+            {id: 1, content: 'Java是一种什么类型的编程语言？', type: 'SINGLE_CHOICE', difficulty: 'EASY'},
+            {id: 2, content: '下面哪些是Spring框架的核心模块？', type: 'MULTIPLE_CHOICE', difficulty: 'MEDIUM'},
+            {id: 3, content: 'HTML是编程语言。', type: 'TRUE_FALSE', difficulty: 'EASY'}
         ];
 
         const tableBody = document.getElementById('questionTable');

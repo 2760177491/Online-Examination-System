@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>测试仪表板系统</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .test-result {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        .info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <h1 class="mb-4">在线考试系统 - 仪表板测试</h1>
+        
+        <div class="test-section">
+            <h3>1. 登录功能测试</h3>
+            <div class="row">
+                <div class="col-md-6">
+                    <h5>教师登录测试</h5>
+                    <div class="mb-3">
+                        <label for="teacherUsername" class="form-label">用户名</label>
+                        <input type="text" class="form-control" id="teacherUsername" value="teacher1">
+                    </div>
+                    <div class="mb-3">
+                        <label for="teacherPassword" class="form-label">密码</label>
+                        <input type="password" class="form-control" id="teacherPassword" value="password123">
+                    </div>
+                    <button id="teacherLoginBtn" class="btn btn-primary">测试教师登录</button>
+                    <div id="teacherLoginResult" class="test-result"></div>
+                </div>
+                <div class="col-md-6">
+                    <h5>学生登录测试</h5>
+                    <div class="mb-3">
+                        <label for="studentUsername" class="form-label">用户名</label>
+                        <input type="text" class="form-control" id="studentUsername" value="student1">
+                    </div>
+                    <div class="mb-3">
+                        <label for="studentPassword" class="form-label">密码</label>
+                        <input type="password" class="form-control" id="studentPassword" value="password123">
+                    </div>
+                    <button id="studentLoginBtn" class="btn btn-success">测试学生登录</button>
+                    <div id="studentLoginResult" class="test-result"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h3>2. 仪表板页面测试</h3>
+            <div class="row">
+                <div class="col-md-6">
+                    <h5>教师仪表板</h5>
+                    <p>测试教师仪表板页面是否正常加载</p>
+                    <button id="teacherDashboardBtn" class="btn btn-primary">打开教师仪表板</button>
+                    <div id="teacherDashboardResult" class="test-result"></div>
+                </div>
+                <div class="col-md-6">
+                    <h5>学生仪表板</h5>
+                    <p>测试学生仪表板页面是否正常加载</p>
+                    <button id="studentDashboardBtn" class="btn btn-success">打开学生仪表板</button>
+                    <div id="studentDashboardResult" class="test-result"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h3>3. 权限控制测试</h3>
+            <p>测试不同角色用户访问权限控制</p>
+            <button id="permissionTestBtn" class="btn btn-warning">运行权限测试</button>
+            <div id="permissionTestResult" class="test-result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>4. 退出登录测试</h3>
+            <p>测试用户退出登录功能</p>
+            <button id="logoutTestBtn" class="btn btn-danger">测试退出登录</button>
+            <div id="logoutTestResult" class="test-result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>5. 模拟数据测试</h3>
+            <p>测试仪表板页面上的模拟数据展示</p>
+            <button id="mockDataTestBtn" class="btn btn-info">测试模拟数据</button>
+            <div id="mockDataTestResult" class="test-result"></div>
+        </div>
+    </div>
+
+    <script>
+        // API基础URL
+        const API_BASE_URL = 'http://localhost:8080/api';
+        
+        // 显示测试结果
+        function showResult(elementId, message, isSuccess = true) {
+            const element = document.getElementById(elementId);
+            element.innerHTML = message;
+            element.className = `test-result ${isSuccess ? 'success' : 'error'}`;
+        }
+        
+        // 显示信息
+        function showInfo(elementId, message) {
+            const element = document.getElementById(elementId);
+            element.innerHTML = message;
+            element.className = 'test-result info';
+        }
+        
+        // 教师登录测试
+        document.getElementById('teacherLoginBtn').addEventListener('click', async function() {
+            const username = document.getElementById('teacherUsername').value;
+            const password = document.getElementById('teacherPassword').value;
+            
+            try {
+                showInfo('teacherLoginResult', '正在测试教师登录...');
+                
+                const response = await fetch(`${API_BASE_URL}/users/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        username: username,
+                        password: password,
+                        role: 'TEACHER'
+                    }),
+                    credentials: 'include'
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showResult('teacherLoginResult', `教师登录成功！用户信息：${result.data.username} (${result.data.role})`);
+                    // 保存用户信息到本地存储
+                    localStorage.setItem('currentUser', JSON.stringify(result.data));
+                    localStorage.setItem('userRole', 'TEACHER');
+                } else {
+                    showResult('teacherLoginResult', `教师登录失败：${result.message}`, false);
+                }
+            } catch (error) {
+                showResult('teacherLoginResult', `教师登录出错：${error.message}`, false);
+            }
+        });
+        
+        // 学生登录测试
+        document.getElementById('studentLoginBtn').addEventListener('click', async function() {
+            const username = document.getElementById('studentUsername').value;
+            const password = document.getElementById('studentPassword').value;
+            
+            try {
+                showInfo('studentLoginResult', '正在测试学生登录...');
+                
+                const response = await fetch(`${API_BASE_URL}/users/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        username: username,
+                        password: password,
+                        role: 'STUDENT'
+                    }),
+                    credentials: 'include'
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showResult('studentLoginResult', `学生登录成功！用户信息：${result.data.username} (${result.data.role})`);
+                    // 保存用户信息到本地存储
+                    localStorage.setItem('currentUser', JSON.stringify(result.data));
+                    localStorage.setItem('userRole', 'STUDENT');
+                } else {
+                    showResult('studentLoginResult', `学生登录失败：${result.message}`, false);
+                }
+            } catch (error) {
+                showResult('studentLoginResult', `学生登录出错：${error.message}`, false);
+            }
+        });
+        
+        // 打开教师仪表板
+        document.getElementById('teacherDashboardBtn').addEventListener('click', function() {
+            const userRole = localStorage.getItem('userRole');
+            
+            if (userRole !== 'TEACHER') {
+                showResult('teacherDashboardResult', '请先以教师身份登录', false);
+                return;
+            }
+            
+            showInfo('teacherDashboardResult', '正在打开教师仪表板...');
+            
+            // 在新窗口中打开教师仪表板
+            const dashboardWindow = window.open('frontend/pages/teacher-dashboard.html', '_blank');
+            
+            if (dashboardWindow) {
+                showResult('teacherDashboardResult', '教师仪表板已在新窗口中打开');
+            } else {
+                showResult('teacherDashboardResult', '无法打开新窗口，请检查浏览器弹窗设置', false);
+            }
+        });
+        
+        // 打开学生仪表板
+        document.getElementById('studentDashboardBtn').addEventListener('click', function() {
+            const userRole = localStorage.getItem('userRole');
+            
+            if (userRole !== 'STUDENT') {
+                showResult('studentDashboardResult', '请先以学生身份登录', false);
+                return;
+            }
+            
+            showInfo('studentDashboardResult', '正在打开学生仪表板...');
+            
+            // 在新窗口中打开学生仪表板
+            const dashboardWindow = window.open('frontend/pages/student-dashboard.html', '_blank');
+            
+            if (dashboardWindow) {
+                showResult('studentDashboardResult', '学生仪表板已在新窗口中打开');
+            } else {
+                showResult('studentDashboardResult', '无法打开新窗口，请检查浏览器弹窗设置', false);
+            }
+        });
+        
+        // 权限控制测试
+        document.getElementById('permissionTestBtn').addEventListener('click', async function() {
+            showInfo('permissionTestResult', '正在测试权限控制...');
+            
+            // 测试获取当前用户信息
+            try {
+                const response = await fetch(`${API_BASE_URL}/users/current`, {
+                    method: 'GET',
+                    credentials: 'include'
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    const user = result.data;
+                    showResult('permissionTestResult', `权限控制正常！当前用户：${user.username} (${user.role})`);
+                } else {
+                    showResult('permissionTestResult', `权限控制测试失败：${result.message}`, false);
+                }
+            } catch (error) {
+                showResult('permissionTestResult', `权限控制测试出错：${error.message}`, false);
+            }
+        });
+        
+        // 退出登录测试
+        document.getElementById('logoutTestBtn').addEventListener('click', async function() {
+            try {
+                showInfo('logoutTestResult', '正在测试退出登录...');
+                
+                const response = await fetch(`${API_BASE_URL}/users/logout`, {
+                    method: 'POST',
+                    credentials: 'include'
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showResult('logoutTestResult', '退出登录成功！');
+                    // 清除本地存储
+                    localStorage.removeItem('currentUser');
+                    localStorage.removeItem('userRole');
+                } else {
+                    showResult('logoutTestResult', `退出登录失败：${result.message}`, false);
+                }
+            } catch (error) {
+                showResult('logoutTestResult', `退出登录出错：${error.message}`, false);
+            }
+        });
+        
+        // 模拟数据测试
+        document.getElementById('mockDataTestBtn').addEventListener('click', function() {
+            const currentUser = localStorage.getItem('currentUser');
+            
+            if (!currentUser) {
+                showResult('mockDataTestResult', '请先登录', false);
+                return;
+            }
+            
+            const user = JSON.parse(currentUser);
+            const userRole = user.role;
+            
+            let mockDataInfo = '';
+            
+            if (userRole === 'TEACHER') {
+                mockDataInfo = `
+                    <h6>教师仪表板模拟数据：</h6>
+                    <ul>
+                        <li>创建的考试数量：5</li>
+                        <li>学生总数：120</li>
+                        <li>待批改试卷：23</li>
+                        <li>最近考试：高等数学期末考试</li>
+                    </ul>
+                `;
+            } else {
+                mockDataInfo = `
+                    <h6>学生仪表板模拟数据：</h6>
+                    <ul>
+                        <li>已参加考试：8</li>
+                        <li>平均分数：85.5</li>
+                        <li>待参加考试：3</li>
+                        <li>最近成绩：计算机基础 - 92分</li>
+                    </ul>
+                `;
+            }
+            
+            showResult('mockDataTestResult', mockDataInfo);
+        });
+    </script>
+</body>
+</html>
