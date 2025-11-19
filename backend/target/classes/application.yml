@@ -20,6 +20,9 @@ spring:
   mvc:
     pathmatch:
       matching-strategy: ant_path_matcher
+  web:
+    resources:
+      static-locations: classpath:/static/, file:../frontend/, file:../frontend/pages/, file:./, file:E:/IDEA/Online-Examination-System/frontend/, file:E:/IDEA/Online-Examination-System/frontend/pages/
 
 # 日志配置
 logging:
