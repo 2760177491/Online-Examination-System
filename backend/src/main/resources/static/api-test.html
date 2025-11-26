@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API测试页面</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .form-container {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, select, button {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .response {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f8f8f8;
+            border-radius: 5px;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <h1>API测试页面</h1>
+
+    <!-- 注册表单 -->
+    <div class="form-container">
+        <h2>用户注册</h2>
+        <form id="registerForm">
+            <div class="form-group">
+                <label for="reg-username">用户名:</label>
+                <input type="text" id="reg-username" name="username" required>
+            </div>
+            <div class="form-group">
+                <label for="reg-password">密码:</label>
+                <input type="password" id="reg-password" name="password" required>
+            </div>
+            <div class="form-group">
+                <label for="reg-role">角色:</label>
+                <select id="reg-role" name="role" required>
+                    <option value="TEACHER">教师</option>
+                    <option value="STUDENT">学生</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="reg-realName">真实姓名:</label>
+                <input type="text" id="reg-realName" name="realName">
+            </div>
+            <div class="form-group">
+                <label for="reg-email">邮箱:</label>
+                <input type="email" id="reg-email" name="email">
+            </div>
+            <button type="submit">注册</button>
+        </form>
+        <div id="registerResponse" class="response" style="display: none;"></div>
+    </div>
+
+    <!-- 登录表单 -->
+    <div class="form-container">
+        <h2>用户登录</h2>
+        <form id="loginForm">
+            <div class="form-group">
+                <label for="login-username">用户名:</label>
+                <input type="text" id="login-username" name="username" required>
+            </div>
+            <div class="form-group">
+                <label for="login-password">密码:</label>
+                <input type="password" id="login-password" name="password" required>
+            </div>
+            <div class="form-group">
+                <label for="login-role">角色:</label>
+                <select id="login-role" name="role" required>
+                    <option value="TEACHER">教师</option>
+                    <option value="STUDENT">学生</option>
+                </select>
+            </div>
+            <button type="submit">登录</button>
+        </form>
+        <div id="loginResponse" class="response" style="display: none;"></div>
+    </div>
+
+    <script>
+        // 注册表单提交
+        document.getElementById('registerForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            const data = {};
+            formData.forEach((value, key) => {
+                data[key] = value;
+            });
+            
+            fetch('/api/users/register', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(data => {
+                const responseDiv = document.getElementById('registerResponse');
+                responseDiv.textContent = JSON.stringify(data, null, 2);
+                responseDiv.style.display = 'block';
+            })
+            .catch(error => {
+                const responseDiv = document.getElementById('registerResponse');
+                responseDiv.textContent = 'Error: ' + error;
+                responseDiv.style.display = 'block';
+            });
+        });
+        
+        // 登录表单提交
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            const data = {};
+            formData.forEach((value, key) => {
+                data[key] = value;
+            });
+            
+            fetch('/api/users/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(data => {
+                const responseDiv = document.getElementById('loginResponse');
+                responseDiv.textContent = JSON.stringify(data, null, 2);
+                responseDiv.style.display = 'block';
+            })
+            .catch(error => {
+                const responseDiv = document.getElementById('loginResponse');
+                responseDiv.textContent = 'Error: ' + error;
+                responseDiv.style.display = 'block';
+            });
+        });
+    </script>
+</body>
+</html>

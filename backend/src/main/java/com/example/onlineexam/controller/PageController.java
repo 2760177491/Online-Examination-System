@@ -6,33 +6,21 @@ import org.springframework.web.bind.annotation.GetMapping;
 @Controller
 public class PageController {
 
-    // 处理登录页面请求
-    @GetMapping("/login")
-    public String login() {
-        return "forward:/pages/login.html";
-    }
-
-    // 处理首页请求
-    @GetMapping({"/", "/index"})
+    // 处理所有前端路由，返回Vue应用的index.html
+    @GetMapping({"/", "/index", "/login", "/teacher-dashboard", "/student-dashboard", "/exam/**", "/question/**", "/result/**"})
     public String index() {
         return "forward:/index.html";
-    }
-
-    // 处理教师仪表板页面
-    @GetMapping("/teacher-dashboard")
-    public String teacherDashboard() {
-        return "forward:/pages/teacher-dashboard.html";
-    }
-
-    // 处理学生仪表板页面
-    @GetMapping("/student-dashboard")
-    public String studentDashboard() {
-        return "forward:/pages/student-dashboard.html";
     }
 
     // 处理测试仪表板页面
     @GetMapping("/test-dashboard")
     public String testDashboard() {
         return "forward:/test-dashboard.html";
+    }
+    
+    // 处理API测试页面
+    @GetMapping("/api-test")
+    public String apiTest() {
+        return "forward:/api-test.html";
     }
 }
