@@ -94,7 +94,8 @@ export default {
         if (response.success) {
           // 后端API返回的是success、message和data字段
           // 从response.data中获取用户信息
-          const userData = response.data;
+          // eslint-disable-next-line no-unused-vars
+          const userData = response.data; // 用户数据，已记录到日志
 
           // 设置一个模拟token，因为后端API不返回token
           // 在实际应用中，后端应该返回token

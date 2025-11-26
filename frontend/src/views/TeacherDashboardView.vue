@@ -159,7 +159,7 @@
 </template>
 
 <script>
-import { ref, reactive, onMounted } from "vue";
+import { ref, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { ElMessage, ElMessageBox } from "element-plus";
 import request from "../utils/request";
@@ -245,19 +245,22 @@ export default {
     };
 
     // 查看成绩详情
-    const viewResult = (result) => {
+    // eslint-disable-next-line no-unused-vars
+    const viewResult = (_result) => {
       // 这里可以添加查看成绩详情的逻辑
       ElMessage.info("查看成绩详情功能待实现");
     };
 
     // 编辑题目
-    const editQuestion = (question) => {
+    // eslint-disable-next-line no-unused-vars
+    const editQuestion = (_question) => {
       // 这里可以添加编辑题目的逻辑
       ElMessage.info("编辑题目功能待实现");
     };
 
     // 编辑试卷
-    const editExam = (exam) => {
+    // eslint-disable-next-line no-unused-vars
+    const editExam = (_exam) => {
       // 这里可以添加编辑试卷的逻辑
       ElMessage.info("编辑试卷功能待实现");
     };

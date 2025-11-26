@@ -22,7 +22,12 @@ spring:
       matching-strategy: ant_path_matcher
   web:
     resources:
-      static-locations: classpath:/static/, file:../frontend/dist/, file:./
+      static-locations: classpath:/static/
+
+# 应用配置
+app:
+  frontend:
+    url: http://localhost:8081
 
 # 日志配置
 logging:
