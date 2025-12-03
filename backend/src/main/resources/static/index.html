@@ -1,62 +1,19 @@
-<!DOCTYPE html>
-<html lang="zh-CN">
+<!doctype html>
+<html lang="">
 <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width,initial-scale=1">
-    <link rel="icon" href="/favicon.ico">
-    <title>在线考试系统</title>
-    <style>
-        /* 基本样式，确保在JS加载前页面不会完全空白 */
-        #app {
-            font-family: Avenir, Helvetica, Arial, sans-serif;
-            -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
-            color: #2c3e50;
-        }
-        .loading {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            font-size: 18px;
-        }
-    </style>
+    <link rel="icon" href="favicon.ico">
+    <title>frontend-vue</title>
+    <script defer="defer" src="static/js/chunk-vendors.1718b2ac.js"></script>
+    <script defer="defer" src="static/js/app.bfebb08c.js"></script>
+    <link href="static/css/chunk-vendors.22084777.css" rel="stylesheet">
+    <link href="static/css/app.b5eb7bae.css" rel="stylesheet">
 </head>
 <body>
-    <div id="app">
-        <div class="loading">系统加载中，请稍候...</div>
-    </div>
-    <!-- 开发环境下直接加载前端开发服务器的资源 -->
-    <script>
-        // 检测当前环境
-        (function() {
-            // 如果是开发环境，直接跳转到前端开发服务器
-            if (window.location.hostname === 'localhost' && window.location.port === '8080') {
-                // 重定向到前端开发服务器
-                window.location.href = 'http://localhost:8081' + window.location.pathname;
-                return;
-            }
-            
-            // 生产环境加载构建后的资源
-            var script = document.createElement('script');
-            script.src = '/static/js/app.bfebb08c.js';
-            document.body.appendChild(script);
-            
-            var link1 = document.createElement('link');
-            link1.rel = 'stylesheet';
-            link1.href = '/static/css/chunk-vendors.22084777.css';
-            document.head.appendChild(link1);
-            
-            var link2 = document.createElement('link');
-            link2.rel = 'stylesheet';
-            link2.href = '/static/css/app.b5eb7bae.css';
-            document.head.appendChild(link2);
-            
-            var script2 = document.createElement('script');
-            script2.src = '/static/js/chunk-vendors.1718b2ac.js';
-            document.body.appendChild(script2);
-        })();
-    </script>
+<noscript><strong>We're sorry but frontend-vue doesn't work properly without JavaScript enabled. Please enable it to
+    continue.</strong></noscript>
+<div id="app"></div>
 </body>
 </html>

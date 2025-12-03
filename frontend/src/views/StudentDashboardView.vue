@@ -171,30 +171,42 @@ export default {
     // 获取可参加的考试列表
     const fetchAvailableExams = async () => {
       try {
+        // 由于响应拦截器已返回response.data，直接获取数据
         const data = await request.get(api.EXAMS + "/available");
-        availableExams.value = data;
+        // 确保数据是数组类型
+        availableExams.value = Array.isArray(data) ? data : [];
       } catch (error) {
+        console.error("获取可参加考试列表失败:", error);
         ElMessage.error("获取可参加考试列表失败");
+        availableExams.value = []; // 出错时设为空数组
       }
     };
 
     // 获取我的考试列表
     const fetchMyExams = async () => {
       try {
+        // 由于响应拦截器已返回response.data，直接获取数据
         const data = await request.get(api.EXAMS + "/my");
-        myExams.value = data;
+        // 确保数据是数组类型
+        myExams.value = Array.isArray(data) ? data : [];
       } catch (error) {
+        console.error("获取我的考试列表失败:", error);
         ElMessage.error("获取我的考试列表失败");
+        myExams.value = []; // 出错时设为空数组
       }
     };
 
     // 获取我的成绩列表
     const fetchMyResults = async () => {
       try {
+        // 由于响应拦截器已返回response.data，直接获取数据
         const data = await request.get(api.RESULTS + "/my");
-        myResults.value = data;
+        // 确保数据是数组类型
+        myResults.value = Array.isArray(data) ? data : [];
       } catch (error) {
+        console.error("获取我的成绩列表失败:", error);
         ElMessage.error("获取我的成绩列表失败");
+        myResults.value = []; // 出错时设为空数组
       }
     };
 
