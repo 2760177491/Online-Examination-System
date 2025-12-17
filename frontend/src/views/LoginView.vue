@@ -102,6 +102,8 @@ export default {
           localStorage.setItem("token", "mock-token-" + Date.now());
           localStorage.setItem("userRole", loginForm.role);
           localStorage.setItem("username", loginForm.username);
+          localStorage.setItem("userId", userData.id);
+          localStorage.setItem("user", JSON.stringify(userData));
 
           ElMessage.success(response.message || "登录成功");
 

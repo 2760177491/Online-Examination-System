@@ -29,6 +29,9 @@
             <el-menu-item index="3" @click="activeMenu = 'my-results'">
               <span>我的成绩</span>
             </el-menu-item>
+            <el-menu-item index="4" @click="navigateToExamList">
+              <span>考试中心</span>
+            </el-menu-item>
           </el-menu>
         </el-aside>
 
@@ -36,15 +39,15 @@
           <div v-if="activeMenu === 'available-exams'">
             <h2>可参加考试</h2>
             <el-table :data="availableExams" style="width: 100%">
-              <el-table-column prop="title" label="考试标题"></el-table-column>
+              <el-table-column prop="name" label="考试标题"></el-table-column>
               <el-table-column
-                prop="duration"
+                prop="durationMinutes"
                 label="考试时长(分钟)"
                 width="150"
               ></el-table-column>
               <el-table-column
-                prop="totalScore"
-                label="总分"
+                prop="examPaperId"
+                label="试卷ID"
                 width="100"
               ></el-table-column>
               <el-table-column
@@ -56,6 +59,11 @@
                 prop="endTime"
                 label="结束时间"
                 width="180"
+              ></el-table-column>
+              <el-table-column
+                prop="status"
+                label="状态"
+                width="120"
               ></el-table-column>
               <el-table-column label="操作" width="120">
                 <template #default="scope">
@@ -73,9 +81,9 @@
           <div v-if="activeMenu === 'my-exams'">
             <h2>我的考试</h2>
             <el-table :data="myExams" style="width: 100%">
-              <el-table-column prop="title" label="考试标题"></el-table-column>
+              <el-table-column prop="examSessionId" label="考试场次ID"></el-table-column>
               <el-table-column
-                prop="startTime"
+                prop="actualStartTime"
                 label="开始时间"
                 width="180"
               ></el-table-column>
@@ -89,14 +97,14 @@
               <el-table-column label="操作" width="180">
                 <template #default="scope">
                   <el-button
-                    v-if="scope.row.status === 'IN_PROGRESS'"
+                    v-if="scope.row.status === '进行中'"
                     size="small"
                     type="primary"
                     @click="continueExam(scope.row)"
                     >继续考试</el-button
                   >
                   <el-button
-                    v-if="scope.row.status === 'COMPLETED'"
+                    v-if="scope.row.status === '已提交'"
                     size="small"
                     @click="viewExamResult(scope.row)"
                     >查看结果</el-button
@@ -171,42 +179,68 @@ export default {
     // 获取可参加的考试列表
     const fetchAvailableExams = async () => {
       try {
-        // 由于响应拦截器已返回response.data，直接获取数据
-        const data = await request.get(api.EXAMS + "/available");
-        // 确保数据是数组类型
-        availableExams.value = Array.isArray(data) ? data : [];
+        const resp = await request.get(api.EXAMS + "/available");
+        // resp 是后端返回的 ApiResponse：{ success, message, data }
+        if (resp && resp.success) {
+          availableExams.value = Array.isArray(resp.data) ? resp.data : [];
+        } else {
+          availableExams.value = [];
+          ElMessage.error(resp?.message || "获取可参加考试列表失败");
+        }
       } catch (error) {
         console.error("获取可参加考试列表失败:", error);
         ElMessage.error("获取可参加考试列表失败");
-        availableExams.value = []; // 出错时设为空数组
+        availableExams.value = [];
       }
     };
 
     // 获取我的考试列表
     const fetchMyExams = async () => {
       try {
-        // 由于响应拦截器已返回response.data，直接获取数据
-        const data = await request.get(api.EXAMS + "/my");
-        // 确保数据是数组类型
-        myExams.value = Array.isArray(data) ? data : [];
+        const userStr = localStorage.getItem("user");
+        const user = userStr ? JSON.parse(userStr) : null;
+        if (!user || !user.id) {
+          myExams.value = [];
+          return;
+        }
+        const resp = await request.get(api.EXAMS + "/my", {
+          params: { studentId: user.id },
+        });
+        if (resp && resp.success) {
+          myExams.value = Array.isArray(resp.data) ? resp.data : [];
+        } else {
+          myExams.value = [];
+          ElMessage.error(resp?.message || "获取我的考试列表失败");
+        }
       } catch (error) {
         console.error("获取我的考试列表失败:", error);
         ElMessage.error("获取我的考试列表失败");
-        myExams.value = []; // 出错时设为空数组
+        myExams.value = [];
       }
     };
 
     // 获取我的成绩列表
     const fetchMyResults = async () => {
       try {
-        // 由于响应拦截器已返回response.data，直接获取数据
-        const data = await request.get(api.RESULTS + "/my");
-        // 确保数据是数组类型
-        myResults.value = Array.isArray(data) ? data : [];
+        const userStr = localStorage.getItem("user");
+        const user = userStr ? JSON.parse(userStr) : null;
+        if (!user || !user.id) {
+          myResults.value = [];
+          return;
+        }
+        const resp = await request.get(api.RESULTS + "/my", {
+          params: { studentId: user.id },
+        });
+        if (resp && resp.success) {
+          myResults.value = Array.isArray(resp.data) ? resp.data : [];
+        } else {
+          myResults.value = [];
+          ElMessage.error(resp?.message || "获取我的成绩列表失败");
+        }
       } catch (error) {
         console.error("获取我的成绩列表失败:", error);
         ElMessage.error("获取我的成绩列表失败");
-        myResults.value = []; // 出错时设为空数组
+        myResults.value = [];
       }
     };
 
@@ -233,11 +267,12 @@ export default {
     // 获取状态类型
     const getStatusType = (status) => {
       switch (status) {
-        case "NOT_STARTED":
+        case "未开始":
           return "info";
-        case "IN_PROGRESS":
+        case "进行中":
           return "warning";
-        case "COMPLETED":
+        case "已结束":
+        case "已提交":
           return "success";
         default:
           return "info";
@@ -246,16 +281,7 @@ export default {
 
     // 获取状态文本
     const getStatusText = (status) => {
-      switch (status) {
-        case "NOT_STARTED":
-          return "未开始";
-        case "IN_PROGRESS":
-          return "进行中";
-        case "COMPLETED":
-          return "已完成";
-        default:
-          return "未知";
-      }
+      return status || "未知";
     };
 
     // 退出登录
@@ -264,6 +290,11 @@ export default {
       localStorage.removeItem("userRole");
       localStorage.removeItem("username");
       router.push("/login");
+    };
+    
+    // 跳转到考试列表页面
+    const navigateToExamList = () => {
+      router.push("/student/exams");
     };
 
     // 页面加载时获取数据
@@ -286,6 +317,7 @@ export default {
       getStatusType,
       getStatusText,
       logout,
+      navigateToExamList,
     };
   },
 };
