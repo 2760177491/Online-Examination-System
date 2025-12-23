@@ -5,6 +5,7 @@ import api from "../config/api";
 const request = axios.create({
   baseURL: api.BASE_URL,
   timeout: 5000, // 请求超时时间
+  withCredentials: true, // 关键：允许浏览器携带 Cookie（用于 Spring Session）
   headers: {
     "Content-Type": "application/json",
   },

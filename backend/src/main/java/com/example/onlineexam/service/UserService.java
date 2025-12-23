@@ -1,6 +1,7 @@
 package com.example.onlineexam.service;
 
 import com.example.onlineexam.entity.User;
+import com.example.onlineexam.entity.UserRole;
 import com.example.onlineexam.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -32,5 +33,18 @@ public class UserService {
 
     public List<User> getAllUsers() {
         return userRepository.findAll();
+    }
+
+    /**
+     * 按角色查询用户列表
+     *
+     * 中文说明：
+     * - 用于教师端“分配考试给学生”时拉取学生列表
+     */
+    public List<User> listUsersByRole(UserRole role) {
+        if (role == null) {
+            return List.of();
+        }
+        return userRepository.findByRole(role);
     }
 }

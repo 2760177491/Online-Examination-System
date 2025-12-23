@@ -50,7 +50,24 @@
               <span class="option-text">{{ option.label }}: {{ option.value }}</span>
             </label>
           </div>
-          
+
+          <!-- ✅ 多选题（multiple_choice） -->
+          <div v-else-if="question.type === 'multiple_choice'" class="options">
+            <label
+              v-for="(option, index) in getOptions(question.optionsJson)"
+              :key="index"
+              class="option"
+            >
+              <input
+                type="checkbox"
+                :name="`question_${question.questionId}`"
+                :value="option.label"
+                v-model="multiAnswers[question.questionId]"
+              >
+              <span class="option-text">{{ option.label }}: {{ option.value }}</span>
+            </label>
+          </div>
+
           <!-- 判断题（true_false） -->
           <div v-else-if="question.type === 'true_false'" class="options">
             <label
@@ -110,56 +127,117 @@ export default {
   setup() {
     const route = useRoute();
     const router = useRouter();
-    
+
     const studentExamId = ref(route.params.id);
     const studentExam = ref(null);
     const examSession = ref(null);
     const examPaper = ref(null);
-    const examQuestions = ref([]); // 这里存放的是 ExamQuestionDto 列表
+    const examQuestions = ref([]);
+
+    // 单选/判断/主观：用 question.id 作为 key
     const studentAnswers = ref({});
-    
+    // 多选：用 questionId 作为 key，value 是数组
+    const multiAnswers = ref({});
+
     const loading = ref(true);
     const error = ref('');
     const showConfirmDialog = ref(false);
     const remainingTime = ref(0);
+
     let timer = null;
-    
-    // 加载考试相关信息
-    const loadExamInfo = async () => {
+    let autoSaveTimer = null;
+
+    // ===============
+    // 工具方法
+    // ===============
+    const safeSplitMulti = (s) => {
+      if (!s) return [];
+      return String(s)
+        .split(',')
+        .map(x => x.trim())
+        .filter(Boolean);
+    };
+
+    // 从后端读取已保存答案，回填到输入框
+    const loadSavedAnswers = async () => {
       try {
-        loading.value = true;
-        
-        // 1. 获取学生考试记录
+        const resp = await request.get(`/api/student-exams/${studentExamId.value}/answers`);
+        if (!resp || !resp.success) return;
+
+        const list = Array.isArray(resp.data) ? resp.data : [];
+        const mapByQuestionId = {};
+        list.forEach(a => {
+          if (!a || a.questionId == null) return;
+          mapByQuestionId[a.questionId] = a.answerContent ?? '';
+        });
+
+        // 回填：examQuestions 里既有 id(题目对象id)也有 questionId(题库题目id)
+        examQuestions.value.forEach(q => {
+          const qid = q.questionId ?? q.id;
+          const saved = mapByQuestionId[qid];
+
+          if (q.type === 'multiple_choice') {
+            multiAnswers.value[qid] = safeSplitMulti(saved);
+          } else {
+            // 单选/判断: v-model 绑定的是 option.value（也就是选项文本）
+            // 后端保存的也是文本，因此直接回填即可
+            studentAnswers.value[q.id] = saved;
+          }
+        });
+      } catch (e) {
+        // 回填失败不阻断考试
+        console.warn('加载已保存答案失败:', e);
+      }
+    };
+
+    // ===============
+    // 加载考试相关信息
+    // ===============
+    const loadExamInfo = async () => {
+      loading.value = true;
+      try {
         const examResp = await request.get(`/api/student-exams/${studentExamId.value}`);
         if (!examResp || !examResp.success || !examResp.data) {
-          throw new Error(examResp?.message || '获取学生考试记录失败');
+          error.value = '加载考试信息失败：' + (examResp?.message || '获取学生考试记录失败');
+          return;
         }
         studentExam.value = examResp.data;
 
-        // 2. 获取考试场次信息
         const sessionResp = await request.get(`/api/exam-sessions/${studentExam.value.examSessionId}`);
         if (!sessionResp || !sessionResp.success || !sessionResp.data) {
-          throw new Error(sessionResp?.message || '获取考试场次信息失败');
+          error.value = '加载考试信息失败：' + (sessionResp?.message || '获取考试场次信息失败');
+          return;
         }
         examSession.value = sessionResp.data;
 
-        // 3. 获取试卷信息
         const paperResp = await request.get(`/api/exams/${examSession.value.examPaperId}`);
         if (!paperResp || !paperResp.success || !paperResp.data) {
-          throw new Error(paperResp?.message || '获取试卷信息失败');
+          error.value = '加载考试信息失败：' + (paperResp?.message || '获取试卷信息失败');
+          return;
         }
         examPaper.value = paperResp.data;
 
-        // 4. 获取试卷题目（ExamQuestionDto 列表）
         const questionsResp = await request.get(`/api/exam-questions?examPaperId=${examSession.value.examPaperId}`);
         if (!questionsResp || !questionsResp.success) {
-          throw new Error(questionsResp?.message || '获取试卷题目失败');
+          error.value = '加载考试信息失败：' + (questionsResp?.message || '获取试卷题目失败');
+          return;
         }
         examQuestions.value = Array.isArray(questionsResp.data) ? questionsResp.data : [];
 
-        // 初始化剩余时间
+        // 初始化多选题数组
+        examQuestions.value.forEach((q) => {
+          if (q.type === 'multiple_choice') {
+            const qid = q.questionId;
+            if (qid != null && !Array.isArray(multiAnswers.value[qid])) {
+              multiAnswers.value[qid] = [];
+            }
+          }
+        });
+
+        // ✅ 回填已保存答案（草稿/历史保存）
+        await loadSavedAnswers();
+
         initRemainingTime();
-        
         error.value = '';
       } catch (err) {
         error.value = '加载考试信息失败：' + (err.message || err.response?.data?.message || '未知错误');
@@ -167,69 +245,59 @@ export default {
         loading.value = false;
       }
     };
-    
-    // 初始化剩余时间
+
+    // ===============
+    // 倒计时
+    // ===============
     const initRemainingTime = () => {
       if (!examSession.value || !studentExam.value) return;
-      
+
       const endTime = new Date(examSession.value.endTime);
       const now = new Date();
-      
+
       remainingTime.value = Math.max(0, Math.floor((endTime - now) / 1000));
-      
-      // 启动计时器
+
       timer = setInterval(() => {
         remainingTime.value = Math.max(0, remainingTime.value - 1);
-        
-        // 时间结束自动提交
         if (remainingTime.value === 0) {
           submitExam();
         }
       }, 1000);
     };
-    
-    // 格式化时间
+
     const formatTime = (seconds) => {
       const hours = Math.floor(seconds / 3600);
       const minutes = Math.floor((seconds % 3600) / 60);
       const secs = seconds % 60;
-      
       if (hours > 0) {
         return `${hours}时${minutes}分${secs}秒`;
       } else {
         return `${minutes}分${secs}秒`;
       }
     };
-    
-    // 获取题目类型标签
+
     const getQuestionTypeLabel = (type) => {
       const typeMap = {
         'single_choice': '选择题',
+        'multiple_choice': '多选题',
         'true_false': '判断题',
         'subjective': '简答题'
       };
       return typeMap[type] || type;
     };
-    
-    // 解析选项
+
     const getOptions = (optionsStr) => {
       if (!optionsStr) return [];
-      
       try {
-        // 后端 optionsJson 是一个 JSON 数组，例如：
-        // ["A. 2variable", "B. _variable", "C. if", "D. +variable"]
         const arr = JSON.parse(optionsStr);
-        // 将字符串数组转换为 { label, value } 数组，供模板使用
         return arr.map((raw, index) => {
           const text = String(raw);
-          // 按第一个 '.' 分割前缀（选项字母）和内容
           const [labelPart, ...rest] = text.split('.');
-          const label = labelPart?.trim() || String.fromCharCode(65 + index); // A/B/C...
-          const value = rest.join('.').trim() || text; // 去掉前缀后的文本
+          const label = labelPart?.trim() || String.fromCharCode(65 + index);
+          const value = rest.join('.').trim() || text;
           return { label, value };
         });
       } catch (e) {
-        // 如果不是标准 JSON（兜底处理），如 "A.选项1,B.选项2"
         return optionsStr.split(',').map((opt, index) => {
           const [label, value] = opt.split('.');
           return {
@@ -239,33 +307,71 @@ export default {
         });
       }
     };
-    
-    // 保存答案
-    const saveAnswers = () => {
-      // 这里可以实现自动保存功能
-      alert('答案已保存');
+
+    // ===============
+    // 草稿保存（手动 + 自动）
+    // ===============
+    const buildAnswerPayload = () => {
+      return examQuestions.value.map((q) => {
+        const qid = q.questionId;
+        const answerContent = (q.type === 'multiple_choice')
+          ? (Array.isArray(multiAnswers.value[qid]) ? multiAnswers.value[qid] : []).slice().sort().join(',')
+          : (studentAnswers.value[q.id] ?? '');
+
+        return {
+          questionId: parseInt(qid || q.id),
+          answerContent,
+        };
+      });
     };
-    
-    // 确认提交
+
+    const saveAnswers = async () => {
+      try {
+        const answers = buildAnswerPayload();
+        const resp = await request.post(`/api/student-exams/${studentExamId.value}/draft`, answers);
+        if (!resp || !resp.success) {
+          alert('保存失败：' + (resp?.message || '未知错误'));
+          return;
+        }
+        alert('答案已保存（草稿）');
+      } catch (e) {
+        alert('保存失败：' + (e?.response?.data?.message || e.message || '未知错误'));
+      }
+    };
+
+    const startAutoSave = () => {
+      // 每20秒自动保存一次草稿（可按需调整）
+      autoSaveTimer = setInterval(async () => {
+        try {
+          const answers = buildAnswerPayload();
+          await request.post(`/api/student-exams/${studentExamId.value}/draft`, answers);
+        } catch (e) {
+          // 自动保存失败不弹窗，避免打扰考生
+          console.warn('自动保存失败:', e);
+        }
+      }, 20000);
+    };
+
+    const stopAutoSave = () => {
+      if (autoSaveTimer) {
+        clearInterval(autoSaveTimer);
+        autoSaveTimer = null;
+      }
+    };
+
     const confirmSubmit = () => {
       showConfirmDialog.value = true;
     };
-    
-    // 提交试卷
-    const submitExam = async () => {
-      try {
-        // 转换答案格式：将 Map 形式的 studentAnswers 转换为后端需要的数组
-        const answers = Object.keys(studentAnswers.value).map((questionId) => ({
-          questionId: parseInt(questionId),
-          answerContent: studentAnswers.value[questionId],
-        }));
 
-        // 后端 StudentExamController 的 submit 方法签名是：
-        // @PostMapping("/submit")
-        // public ApiResponse submit(@RequestParam Long studentExamId, @RequestBody List<StudentAnswer> answers)
-        // 也就是说：
-        // 1）studentExamId 需要通过 URL 查询参数传递；
-        // 2）请求体只接收答案数组 List<StudentAnswer>，不能包一层 { studentExamId, answers }
+    // ===============
+    // 提交
+    // ===============
+    const submitExam = async () => {
+      // 提交前先停自动保存，避免提交瞬间草稿覆盖
+      stopAutoSave();
+
+      try {
+        const answers = buildAnswerPayload();
         const resp = await request.post(
           `/api/student-exams/submit?studentExamId=${studentExamId.value}`,
           answers
@@ -284,24 +390,34 @@ export default {
       }
     };
 
-    // 页面加载时获取考试信息
-    onMounted(() => {
-      loadExamInfo();
+    // 页面加载
+    onMounted(async () => {
+      await loadExamInfo();
+      startAutoSave();
     });
-    
-    // 页面离开前清理计时器
-    onBeforeUnmount(() => {
+
+    // 离开页面
+    onBeforeUnmount(async () => {
+      stopAutoSave();
       if (timer) {
         clearInterval(timer);
       }
+      // 离开页面前尽量保存一次草稿（失败也不影响离开）
+      try {
+        const answers = buildAnswerPayload();
+        await request.post(`/api/student-exams/${studentExamId.value}/draft`, answers);
+      } catch (_) {
+        // 离开页面时的自动保存属于“尽力而为”，失败不影响离开
+      }
     });
-    
+
     return {
       studentExam,
       examSession,
       examPaper,
       examQuestions,
       studentAnswers,
+      multiAnswers,
       loading,
       error,
       showConfirmDialog,
@@ -344,80 +460,70 @@ export default {
   font-size: 14px;
 }
 
-.loading, .error {
+.loading,
+.error {
+  padding: 20px;
   text-align: center;
-  padding: 40px 0;
-  font-size: 18px;
-  color: #666;
+  font-size: 16px;
 }
 
 .error {
-  color: #ff4d4f;
-}
-
-.exam-content {
-  background-color: white;
-  border-radius: 8px;
-  padding: 20px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  color: #f56c6c;
 }
 
 .exam-paper-info {
-  margin-bottom: 20px;
-  padding-bottom: 15px;
-  border-bottom: 1px solid #e8e8e8;
+  background: #fff;
+  padding: 14px 18px;
+  border-radius: 8px;
+  border: 1px solid #ebeef5;
+  margin-bottom: 16px;
 }
 
 .exam-paper-info h3 {
-  margin: 0 0 5px 0;
-  color: #1890ff;
+  margin: 0 0 6px 0;
 }
 
-.exam-paper-info p {
-  margin: 0;
-  color: #666;
-}
-
-.question-section h4 {
-  margin: 0 0 20px 0;
-  color: #333;
+.question-section {
+  margin-top: 10px;
 }
 
 .question-item {
-  margin-bottom: 25px;
-  padding: 20px;
-  background-color: #fafafa;
+  background: #fff;
+  border: 1px solid #ebeef5;
   border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 14px;
 }
 
 .question-header {
   display: flex;
   align-items: center;
+  gap: 10px;
   margin-bottom: 10px;
 }
 
 .question-number {
-  font-weight: bold;
-  margin-right: 10px;
+  font-weight: 700;
+  color: #333;
 }
 
 .question-type {
-  background-color: #e6f7ff;
-  color: #1890ff;
+  color: #409eff;
+  background: rgba(64, 158, 255, 0.12);
   padding: 2px 8px;
-  border-radius: 4px;
+  border-radius: 12px;
   font-size: 12px;
-  margin-right: 10px;
 }
 
 .question-score {
-  color: #fa8c16;
-  font-size: 14px;
+  color: #e6a23c;
+  font-weight: 600;
 }
 
 .question-content {
-  margin-bottom: 15px;
-  color: #333;
+  font-size: 15px;
+  color: #222;
+  margin-bottom: 10px;
   line-height: 1.6;
 }
 
@@ -430,151 +536,122 @@ export default {
 .option {
   display: flex;
   align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid #ebeef5;
   cursor: pointer;
-  padding: 8px;
-  border-radius: 4px;
-  transition: background-color 0.3s;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
 }
 
 .option:hover {
-  background-color: #e6f7ff;
-}
-
-.option input[type="radio"] {
-  margin-right: 10px;
+  background: #f5f7fa;
+  border-color: #dcdfe6;
 }
 
 .option-text {
   color: #333;
 }
 
-.fill-blank {
-  margin-top: 15px;
-}
-
-.blank-input {
-  padding: 8px 12px;
-  border: 1px solid #d9d9d9;
-  border-radius: 4px;
-  font-size: 14px;
-  width: 100%;
-  max-width: 400px;
-}
-
 .short-answer {
-  margin-top: 15px;
+  margin-top: 10px;
 }
 
 .answer-textarea {
-  padding: 10px;
-  border: 1px solid #d9d9d9;
-  border-radius: 4px;
-  font-size: 14px;
   width: 100%;
   resize: vertical;
-  min-height: 100px;
+  border: 1px solid #dcdfe6;
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 14px;
+  outline: none;
+}
+
+.answer-textarea:focus {
+  border-color: #409eff;
 }
 
 .exam-actions {
   display: flex;
+  gap: 12px;
   justify-content: center;
-  gap: 20px;
-  margin-top: 30px;
-  padding-top: 20px;
-  border-top: 1px solid #e8e8e8;
+  margin: 18px 0 6px;
 }
 
-.save-btn, .submit-btn {
-  padding: 10px 30px;
-  font-size: 16px;
+.save-btn,
+.submit-btn {
   border: none;
-  border-radius: 4px;
+  border-radius: 8px;
+  padding: 10px 18px;
+  font-size: 14px;
   cursor: pointer;
-  transition: background-color 0.3s;
 }
 
 .save-btn {
-  background-color: #faad14;
-  color: white;
-}
-
-.save-btn:hover {
-  background-color: #ffc53d;
+  background: #67c23a;
+  color: #fff;
 }
 
 .submit-btn {
-  background-color: #52c41a;
-  color: white;
+  background: #409eff;
+  color: #fff;
+}
+
+.save-btn:hover {
+  background: #5daf34;
 }
 
 .submit-btn:hover {
-  background-color: #73d13d;
+  background: #337ecc;
 }
 
-/* 确认提交对话框 */
+/* 简易弹窗（不依赖 ElementPlus，保证最小可用） */
 .confirm-dialog {
   position: fixed;
-  top: 0;
   left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.5);
+  top: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.45);
   display: flex;
-  justify-content: center;
   align-items: center;
-  z-index: 1000;
+  justify-content: center;
+  z-index: 9999;
 }
 
 .dialog-content {
-  background-color: white;
-  padding: 30px;
-  border-radius: 8px;
-  width: 90%;
-  max-width: 500px;
-  text-align: center;
+  width: 420px;
+  background: #fff;
+  border-radius: 10px;
+  padding: 18px 18px 14px;
 }
 
 .dialog-content h3 {
-  margin: 0 0 20px 0;
-  color: #333;
-}
-
-.dialog-content p {
-  margin: 0 0 30px 0;
-  color: #666;
+  margin: 0 0 10px;
 }
 
 .dialog-buttons {
   display: flex;
-  justify-content: center;
-  gap: 20px;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 14px;
 }
 
-.cancel-btn, .confirm-submit-btn {
-  padding: 10px 30px;
-  font-size: 16px;
+.cancel-btn,
+.confirm-submit-btn {
   border: none;
-  border-radius: 4px;
+  border-radius: 8px;
+  padding: 8px 14px;
   cursor: pointer;
-  transition: background-color 0.3s;
 }
 
 .cancel-btn {
-  background-color: #f5f5f5;
-  color: #333;
-  border: 1px solid #d9d9d9;
-}
-
-.cancel-btn:hover {
-  background-color: #e8e8e8;
+  background: #909399;
+  color: #fff;
 }
 
 .confirm-submit-btn {
-  background-color: #ff4d4f;
-  color: white;
-}
-
-.confirm-submit-btn:hover {
-  background-color: #ff7875;
+  background: #f56c6c;
+  color: #fff;
 }
 </style>

@@ -78,4 +78,17 @@ public class StudentExamController {
         List<StudentAnswer> answers = studentExamService.getStudentAnswersByStudentExamId(id);
         return ApiResponse.success("获取学生答案列表成功", answers);
     }
+
+    /**
+     * 保存草稿（答题进度保存）
+     *
+     * 说明：
+     * - 前端可定时调用该接口（例如每20秒一次）做自动保存
+     * - 后端按 studentExamId + questionId 进行 upsert
+     */
+    @PostMapping("/{id}/draft")
+    public ApiResponse saveDraft(@PathVariable Long id, @RequestBody List<StudentAnswer> answers) {
+        StudentExam se = studentExamService.saveDraft(id, answers);
+        return ApiResponse.success("草稿保存成功", se);
+    }
 }

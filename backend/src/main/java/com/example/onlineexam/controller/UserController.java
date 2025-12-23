@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.servlet.http.HttpSession;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/users")
@@ -62,5 +63,33 @@ public class UserController {
             return ApiResponse.success("获取用户信息成功", user);
         }
         return ApiResponse.error("用户未登录");
+    }
+
+    /**
+     * 教师端：获取学生列表（用于“考试分配”弹窗）
+     *
+     * 安全说明：
+     * - 仅允许 TEACHER 调用
+     * - 不返回密码字段（前端也不需要）
+     */
+    @GetMapping("/students")
+    public ApiResponse listStudents(HttpSession session) {
+        String role = (String) session.getAttribute("userRole");
+        if (role == null) {
+            return ApiResponse.error("用户未登录");
+        }
+        if (!"TEACHER".equals(role)) {
+            return ApiResponse.error("只有教师可以获取学生列表");
+        }
+
+        // 兼容：不依赖 UserService 新方法，直接拉全量再过滤（数据量小，且更稳）
+        List<User> all = userService.getAllUsers();
+        List<User> students = all.stream().filter(u -> u != null && u.getRole() == UserRole.STUDENT).toList();
+
+        // 简单脱敏：密码不返回
+        for (User u : students) {
+            u.setPassword(null);
+        }
+        return ApiResponse.success("查询成功", students);
     }
 }

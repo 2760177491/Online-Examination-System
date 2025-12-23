@@ -44,4 +44,16 @@ public interface ExamSessionService {
      * 更新考试场次状态
      */
     void updateExamSessionStatus(Long id, String status);
+
+    /**
+     * 教师创建考试场次（更推荐使用这个）
+     * - 只需要传 examPaperId/name/startTime
+     * - endTime/durationMinutes/status 由后端根据试卷时长与当前时间自动计算
+     */
+    ExamSession createExamSessionByPaper(Long examPaperId, String name, java.time.LocalDateTime startTime, Long createdBy);
+
+    /**
+     * 获取教师的所有考试场次（不过滤时间）
+     */
+    java.util.List<ExamSession> getAllExamSessionsByTeacherId(Long teacherId);
 }

@@ -24,6 +24,15 @@ public class Question {
     @Column(nullable = false, length = 32)
     private String type;
 
+    /**
+     * 难度：简单 / 中等 / 困难
+     * 注意：
+     * - 这里用中文字符串，和你数据库里更直观一致
+     * - 为了兼容旧数据与前端未传值的情况，服务端会兜底为“中等”
+     */
+    @Column(nullable = false, length = 16)
+    private String difficulty = "中等";
+
     /** 选项 JSON（主观题可为空） */
     @Lob
     private String optionsJson;

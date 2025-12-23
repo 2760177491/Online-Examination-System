@@ -90,25 +90,27 @@ export default {
       try {
         const response = await request.post(api.USER_LOGIN, loginForm);
 
-        // 检查后端API响应格式
         if (response.success) {
-          // 后端API返回的是success、message和data字段
-          // 从response.data中获取用户信息
-          // eslint-disable-next-line no-unused-vars
-          const userData = response.data; // 用户数据，已记录到日志
+          const userData = response.data;
 
-          // 设置一个模拟token，因为后端API不返回token
-          // 在实际应用中，后端应该返回token
-          localStorage.setItem("token", "mock-token-" + Date.now());
-          localStorage.setItem("userRole", loginForm.role);
-          localStorage.setItem("username", loginForm.username);
-          localStorage.setItem("userId", userData.id);
-          localStorage.setItem("user", JSON.stringify(userData));
+          // 说明：后端使用 HttpSession 保存了 currentUser/userId/userRole。
+          // 前端同时把关键信息缓存到 localStorage，便于页面直接读取。
+          // 这里 userRole 以“后端返回”为准，避免用户在登录页选错角色导致前端状态错误。
+          localStorage.setItem("userId", String(userData?.id ?? ""));
+          localStorage.setItem("username", String(userData?.username ?? loginForm.username));
+          localStorage.setItem("userRole", String(userData?.role ?? loginForm.role));
+          localStorage.setItem("user", JSON.stringify(userData || {}));
+
+          // 兼容：项目之前用 token 触发请求拦截器，这里继续保留一个占位 token。
+          // 真实项目应由后端返回 JWT。
+          if (!localStorage.getItem("token")) {
+            localStorage.setItem("token", "mock-token-" + Date.now());
+          }
 
           ElMessage.success(response.message || "登录成功");
 
-          // 根据角色跳转到不同的页面
-          if (loginForm.role === "TEACHER") {
+          const role = String(userData?.role ?? loginForm.role);
+          if (role === "TEACHER") {
             router.push("/teacher-dashboard");
           } else {
             router.push("/student-dashboard");
