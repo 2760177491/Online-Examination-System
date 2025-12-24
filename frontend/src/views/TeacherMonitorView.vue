@@ -1,78 +1,115 @@
 <template>
-  <div class="teacher-monitor-container">
-    <div class="top-bar">
-      <el-button @click="goBack">返回</el-button>
-      <div class="title">考试监控（简化版）</div>
+  <div class="page-container">
+    <!-- 顶部操作区 -->
+    <div class="page-header">
+      <el-page-header @back="goBack" content="考试监控" title="返回" />
     </div>
 
-    <el-card class="panel">
-      <el-form :inline="true" :model="query" label-width="90px">
-        <el-form-item label="考试场次">
-          <el-select v-model="query.examSessionId" placeholder="请选择考试场次" style="width: 320px" @change="reload">
-            <el-option
-              v-for="s in sessions"
-              :key="s.id"
-              :label="formatSessionLabel(s)"
-              :value="s.id"
-            />
-          </el-select>
-        </el-form-item>
+    <div class="content-wrapper">
+      <!-- 筛选栏 -->
+      <el-card class="filter-card" shadow="hover">
+        <el-form :inline="true" :model="query" class="filter-form">
+          <el-form-item label="考试场次">
+            <el-select v-model="query.examSessionId" placeholder="请选择考试场次" style="width: 320px" @change="reload" filterable>
+              <el-option
+                v-for="s in sessions"
+                :key="s.id"
+                :label="formatSessionLabel(s)"
+                :value="s.id"
+              />
+            </el-select>
+          </el-form-item>
+          <el-form-item>
+            <el-button type="primary" :disabled="!query.examSessionId" @click="reload" icon="el-icon-refresh">刷新数据</el-button>
+          </el-form-item>
+        </el-form>
 
-        <el-form-item>
-          <el-button type="primary" :disabled="!query.examSessionId" @click="reload">刷新</el-button>
-        </el-form-item>
-      </el-form>
+        <el-alert
+          type="info"
+          :closable="false"
+          show-icon
+          title="监控说明：系统实时接收学生端心跳（每30秒）与切屏事件。超过60秒无心跳视为离线。"
+          class="monitor-alert"
+        />
+      </el-card>
 
-      <el-alert
-        type="info"
-        :closable="false"
-        show-icon
-        title="说明：学生端考试页会定时上报心跳，并在切屏/回到页面时上报一次切屏事件。这里展示每个学生的最近心跳时间与累计切屏次数。"
-        style="margin-top: 10px"
-      />
-    </el-card>
+      <el-row :gutter="20" style="margin-top: 20px">
+        <!-- 左侧：监控汇总 -->
+        <el-col :xs="24" :sm="24" :md="6">
+          <el-card class="summary-card" shadow="hover">
+            <template #header>
+              <div class="card-header">
+                <i class="el-icon-data-board"></i> 实时概览
+              </div>
+            </template>
 
-    <el-row :gutter="12" style="margin-top: 12px">
-      <el-col :span="8">
-        <el-card class="panel">
-          <template #header>监控汇总</template>
-          <div class="stat-item"><b>总人数：</b>{{ rows.length }}</div>
-          <div class="stat-item"><b>在线人数：</b>{{ onlineCount }}</div>
-          <div class="stat-item"><b>离线人数：</b>{{ offlineCount }}</div>
-          <div class="stat-item"><b>总切屏次数：</b>{{ totalSwitchCount }}</div>
-          <div class="stat-tip">（判定规则：60 秒内有心跳=在线）</div>
-        </el-card>
-      </el-col>
+            <div class="summary-item">
+              <div class="label">总人数</div>
+              <div class="value text-primary">{{ rows.length }}</div>
+            </div>
+            <el-divider></el-divider>
+            <div class="summary-item">
+              <div class="label">在线人数</div>
+              <div class="value text-success">{{ onlineCount }}</div>
+            </div>
+            <el-divider></el-divider>
+            <div class="summary-item">
+              <div class="label">离线人数</div>
+              <div class="value text-danger">{{ offlineCount }}</div>
+            </div>
+            <el-divider></el-divider>
+            <div class="summary-item">
+              <div class="label">累计切屏</div>
+              <div class="value text-warning">{{ totalSwitchCount }}</div>
+            </div>
+          </el-card>
+        </el-col>
 
-      <el-col :span="16">
-        <el-card class="panel">
-          <template #header>在线与切屏统计</template>
+        <!-- 右侧：详细列表 -->
+        <el-col :xs="24" :sm="24" :md="18">
+          <el-card class="list-card" shadow="hover">
+            <template #header>
+              <div class="card-header">
+                <i class="el-icon-user"></i> 考生状态列表
+              </div>
+            </template>
 
-          <el-table :data="rows" border style="width: 100%">
-            <el-table-column prop="studentId" label="学生ID" width="110" />
-            <el-table-column prop="studentUsername" label="用户名" width="160" />
-            <el-table-column prop="studentRealName" label="姓名" width="140" />
-            <el-table-column prop="lastHeartbeatTime" label="最后心跳" width="200">
-              <template #default="scope">
-                <span>{{ formatDateTime(scope.row.lastHeartbeatTime) }}</span>
-              </template>
-            </el-table-column>
-            <el-table-column prop="switchCount" label="切屏次数" width="110" />
-            <el-table-column label="在线状态" width="120">
-              <template #default="scope">
-                <el-tag :type="isOnline(scope.row.lastHeartbeatTime) ? 'success' : 'info'">
-                  {{ isOnline(scope.row.lastHeartbeatTime) ? '在线' : '离线' }}
-                </el-tag>
-              </template>
-            </el-table-column>
-          </el-table>
+            <el-table :data="rows" border stripe style="width: 100%" height="500">
+              <el-table-column prop="studentId" label="ID" width="80" align="center" />
+              <el-table-column prop="studentUsername" label="用户名" width="150" show-overflow-tooltip />
+              <el-table-column prop="studentRealName" label="姓名" width="120" show-overflow-tooltip />
+              <el-table-column prop="lastHeartbeatTime" label="最后心跳" min-width="180">
+                <template #default="scope">
+                  <span v-if="scope.row.lastHeartbeatTime">
+                    <i class="el-icon-time"></i> {{ formatDateTime(scope.row.lastHeartbeatTime) }}
+                  </span>
+                  <span v-else class="text-gray">-</span>
+                </template>
+              </el-table-column>
+              <el-table-column prop="switchCount" label="切屏次数" width="100" align="center">
+                <template #default="scope">
+                  <el-tag :type="scope.row.switchCount > 0 ? 'warning' : 'info'" effect="plain">
+                    {{ scope.row.switchCount || 0 }}
+                  </el-tag>
+                </template>
+              </el-table-column>
+              <el-table-column label="状态" width="100" align="center">
+                <template #default="scope">
+                  <el-tag :type="isOnline(scope.row.lastHeartbeatTime) ? 'success' : 'danger'" effect="dark">
+                    {{ isOnline(scope.row.lastHeartbeatTime) ? '在线' : '离线' }}
+                  </el-tag>
+                </template>
+              </el-table-column>
+            </el-table>
 
-          <div v-if="query.examSessionId && rows.length === 0" class="empty-tip">
-            暂无监控数据（提示：需要学生进入考试页面并保持一会儿，才会产生心跳/切屏记录）
-          </div>
-        </el-card>
-      </el-col>
-    </el-row>
+            <div v-if="query.examSessionId && rows.length === 0" class="empty-placeholder">
+              <i class="el-icon-loading" v-if="loading"></i>
+              <span v-else>暂无监控数据，请等待学生进入考试...</span>
+            </div>
+          </el-card>
+        </el-col>
+      </el-row>
+    </div>
   </div>
 </template>
 
@@ -95,18 +132,24 @@ export default {
 
     const sessions = ref([])
     const rows = ref([])
+    const loading = ref(false)
 
     const goBack = () => router.back()
 
     const formatSessionLabel = (s) => {
       if (!s) return ''
       const name = s.name || `场次#${s.id}`
-      return `${name}（试卷ID:${s.examPaperId}）`
+      return `${name} (ID:${s.id})`
     }
 
     const loadSessions = async () => {
       try {
-        const resp = await request.get(api.EXAM_SESSIONS_TEACHER)
+        // 中文注释：兼容不同后端实现：有的版本需要 createdBy，有的版本从 session 取
+        const teacherIdRaw = localStorage.getItem('userId')
+        const teacherId = teacherIdRaw ? Number(teacherIdRaw) : null
+        const resp = await request.get(api.EXAM_SESSIONS_TEACHER, {
+          params: teacherId ? { createdBy: teacherId } : undefined,
+        })
         const data = resp.data || resp
         sessions.value = Array.isArray(data) ? data : []
       } catch (e) {
@@ -121,6 +164,7 @@ export default {
         rows.value = []
         return
       }
+      loading.value = true
       try {
         const resp = await request.get(api.MONITOR_TEACHER, { params: { examSessionId: query.examSessionId } })
         const data = resp.data || resp
@@ -129,6 +173,8 @@ export default {
         console.error(e)
         ElMessage.error('获取监控数据失败')
         rows.value = []
+      } finally {
+        loading.value = false
       }
     }
 
@@ -161,6 +207,12 @@ export default {
     onMounted(async () => {
       await loadSessions()
 
+      if (!sessions.value || sessions.value.length === 0) {
+        // 中文注释：没有任何场次时，说明当前老师可能还没创建考试，或登录态失效
+        ElMessage.warning('暂无可监控的考试场次（请先在“考试管理”创建/发布考试，或重新登录）')
+        return
+      }
+
       // 支持从路由传 examSessionId 预选
       const preselected = route.query.examSessionId ? Number(route.query.examSessionId) : null
       if (preselected && sessions.value.some((s) => s.id === preselected)) {
@@ -179,6 +231,7 @@ export default {
       query,
       sessions,
       rows,
+      loading,
       goBack,
       formatSessionLabel,
       reload,
@@ -193,39 +246,77 @@ export default {
 </script>
 
 <style scoped>
-.teacher-monitor-container {
-  padding: 12px;
+.page-container {
+  min-height: 100vh;
+  background-color: #f5f7fa;
+  padding-bottom: 20px;
 }
 
-.top-bar {
+.page-header {
+  background: #fff;
+  padding: 16px 24px;
+  box-shadow: 0 1px 4px rgba(0, 21, 41, 0.08);
+  margin-bottom: 20px;
+}
+
+.content-wrapper {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+.filter-card {
+  border-radius: 4px;
+}
+
+.filter-form {
+  margin-bottom: 0;
+}
+
+.monitor-alert {
+  margin-top: 10px;
+}
+
+.summary-card, .list-card {
+  height: 100%;
+  border-radius: 4px;
+}
+
+.card-header {
+  font-weight: 600;
+  font-size: 16px;
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 12px;
+  gap: 8px;
 }
 
-.title {
-  font-size: 18px;
-  font-weight: 700;
+.summary-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
 }
 
-.panel {
-  margin-bottom: 12px;
+.summary-item .label {
+  color: #606266;
+  font-size: 14px;
 }
 
-.empty-tip {
+.summary-item .value {
+  font-size: 24px;
+  font-weight: bold;
+}
+
+.text-primary { color: #409eff; }
+.text-success { color: #67c23a; }
+.text-danger { color: #f56c6c; }
+.text-warning { color: #e6a23c; }
+.text-gray { color: #909399; }
+
+.empty-placeholder {
+  padding: 40px;
   text-align: center;
-  color: #999;
-  padding: 12px;
-}
-
-.stat-item {
-  margin: 8px 0;
-}
-
-.stat-tip {
-  color: #999;
-  font-size: 12px;
-  margin-top: 6px;
+  color: #909399;
+  font-size: 14px;
 }
 </style>

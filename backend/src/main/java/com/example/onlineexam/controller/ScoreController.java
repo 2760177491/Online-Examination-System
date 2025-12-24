@@ -133,15 +133,21 @@ public class ScoreController {
 
         List<StudentExam> submitted = studentExamRepository.findByExamSessionIdAndStatusIn(examSessionId, SUBMITTED_STATUSES);
 
-        ExamStatsDto dto = new ExamStatsDto();
-        dto.setTotalParticipants(submitted.size());
-        dto.setSubmittedCount(submitted.size());
+        // 中文注释：这里直接返回 Map，避免因 DTO/Lombok 在某些环境下导致 getter/setter 不可用
+        // 前端用 stats.xxx 读取不受影响（JSON key 一致即可）
+        Map<String, Object> dto = new LinkedHashMap<>();
+        dto.put("totalParticipants", (long) submitted.size());
+        dto.put("submittedCount", (long) submitted.size());
+
+        // 中文注释：补齐“成绩分布”数据，前端柱状图需要它
+        Map<String, Integer> scoreDistribution = new LinkedHashMap<>();
 
         if (submitted.isEmpty()) {
-            dto.setAvgScore(0);
-            dto.setMaxScore(0);
-            dto.setMinScore(0);
-            dto.setPassRate(0);
+            dto.put("avgScore", 0.0);
+            dto.put("maxScore", 0);
+            dto.put("minScore", 0);
+            dto.put("passRate", 0.0);
+            dto.put("scoreDistribution", scoreDistribution);
             return ApiResponse.success("查询成功", dto);
         }
 
@@ -153,15 +159,37 @@ public class ScoreController {
         int min = scores.stream().min(Integer::compareTo).orElse(0);
         double avg = scores.stream().mapToInt(x -> x).average().orElse(0.0);
 
-        // 及格线：默认按总分 60%（可根据需要调整）
         int passLine = (int) Math.ceil(totalScore * 0.6);
         long passCount = scores.stream().filter(s -> s >= passLine).count();
+        double passRate = submitted.isEmpty() ? 0.0 : (passCount * 1.0 / submitted.size());
 
-        dto.setMaxScore(max);
-        dto.setMinScore(min);
-        dto.setAvgScore(avg);
-        dto.setPassRate(submitted.isEmpty() ? 0.0 : (passCount * 1.0 / submitted.size()));
+        dto.put("maxScore", max);
+        dto.put("minScore", min);
+        dto.put("avgScore", avg);
+        dto.put("passRate", passRate);
 
+        String[] buckets = new String[]{"0-60", "60-70", "70-80", "80-90", "90-100"};
+        for (String b : buckets) scoreDistribution.put(b, 0);
+
+        for (Integer s : scores) {
+            double percent;
+            if (totalScore <= 0) {
+                percent = Math.max(0, Math.min(100, s));
+            } else {
+                percent = (s * 100.0 / totalScore);
+            }
+
+            String key;
+            if (percent < 60) key = "0-60";
+            else if (percent < 70) key = "60-70";
+            else if (percent < 80) key = "70-80";
+            else if (percent < 90) key = "80-90";
+            else key = "90-100";
+
+            scoreDistribution.put(key, scoreDistribution.getOrDefault(key, 0) + 1);
+        }
+
+        dto.put("scoreDistribution", scoreDistribution);
         return ApiResponse.success("查询成功", dto);
     }
 

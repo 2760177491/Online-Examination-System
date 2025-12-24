@@ -1,187 +1,270 @@
 <template>
-  <div class="page">
-    <div class="topbar">
-      <el-button @click="goBack">返回</el-button>
-      <h2 class="title">考试管理</h2>
+  <div class="page-container">
+    <!-- 顶部操作区 -->
+    <div class="page-header">
+      <el-page-header @back="goBack" content="考试管理" title="返回" />
     </div>
 
-    <el-card class="card">
-      <template #header>
-        <div class="card-header">
-          <span>创建考试（发布场次）</span>
-        </div>
-      </template>
+    <div class="content-wrapper">
+      <!-- 统计卡片 -->
+      <el-row :gutter="20" class="stats-row">
+        <el-col :span="6">
+          <el-card shadow="hover" class="stat-card">
+            <div class="stat-icon bg-blue"><i class="el-icon-data-line"></i></div>
+            <div class="stat-info">
+              <div class="stat-value">{{ sessions.length }}</div>
+              <div class="stat-label">总场次</div>
+            </div>
+          </el-card>
+        </el-col>
+        <el-col :span="6">
+          <el-card shadow="hover" class="stat-card">
+            <div class="stat-icon bg-green"><i class="el-icon-video-play"></i></div>
+            <div class="stat-info">
+              <div class="stat-value">{{ sessions.filter(s => s.status === '进行中').length }}</div>
+              <div class="stat-label">进行中</div>
+            </div>
+          </el-card>
+        </el-col>
+        <el-col :span="6">
+          <el-card shadow="hover" class="stat-card">
+            <div class="stat-icon bg-orange"><i class="el-icon-time"></i></div>
+            <div class="stat-info">
+              <div class="stat-value">{{ sessions.filter(s => s.status === '未开始').length }}</div>
+              <div class="stat-label">未开始</div>
+            </div>
+          </el-card>
+        </el-col>
+        <el-col :span="6">
+          <el-card shadow="hover" class="stat-card">
+            <div class="stat-icon bg-gray"><i class="el-icon-finished"></i></div>
+            <div class="stat-info">
+              <div class="stat-value">{{ sessions.filter(s => s.status === '已结束').length }}</div>
+              <div class="stat-label">已结束</div>
+            </div>
+          </el-card>
+        </el-col>
+      </el-row>
 
-      <el-form :model="createForm" label-width="100px" class="create-form">
-        <el-form-item label="选择试卷">
-          <el-select v-model="createForm.examPaperId" placeholder="请选择要发布的试卷" filterable style="width: 360px">
-            <el-option
-              v-for="p in examPapers"
-              :key="p.id"
-              :label="`${p.id} - ${p.name}`"
-              :value="p.id"
-            />
-          </el-select>
-        </el-form-item>
+      <!-- 创建考试表单 -->
+      <el-card class="create-card" shadow="hover">
+        <template #header>
+          <div class="card-header">
+            <span><i class="el-icon-plus"></i> 发布新考试</span>
+          </div>
+        </template>
 
-        <el-form-item label="考试名称">
-          <el-input v-model="createForm.name" placeholder="例如：第3周随堂测验" style="width: 360px" />
-        </el-form-item>
+        <el-form :model="createForm" label-width="100px" class="create-form">
+          <el-row :gutter="20">
+            <el-col :xs="24" :sm="12" :md="8">
+              <el-form-item label="选择试卷">
+                <el-select v-model="createForm.examPaperId" placeholder="请选择要发布的试卷" filterable style="width: 100%">
+                  <el-option
+                    v-for="p in examPapers"
+                    :key="p.id"
+                    :label="`${p.id} - ${p.name}`"
+                    :value="p.id"
+                  />
+                </el-select>
+              </el-form-item>
+            </el-col>
+            <el-col :xs="24" :sm="12" :md="8">
+              <el-form-item label="考试名称">
+                <el-input v-model="createForm.name" placeholder="例如：第3周随堂测验" style="width: 100%" />
+              </el-form-item>
+            </el-col>
+            <el-col :xs="24" :sm="12" :md="8">
+              <el-form-item label="开始时间">
+                <el-date-picker
+                  v-model="createForm.startTime"
+                  type="datetime"
+                  placeholder="请选择开始时间"
+                  style="width: 100%"
+                  value-format="YYYY-MM-DDTHH:mm:ss"
+                />
+              </el-form-item>
+            </el-col>
+            <el-col :xs="24" :sm="12" :md="8">
+              <el-form-item label="覆盖时长">
+                <el-input-number v-model="createForm.overrideDurationMinutes" :min="1" placeholder="默认使用试卷时长" style="width: 100%" />
+              </el-form-item>
+            </el-col>
+            <el-col :xs="24" :sm="24" :md="16" class="form-actions">
+              <el-button type="primary" :loading="creating" @click="createSession" icon="el-icon-check">创建考试</el-button>
+              <el-button @click="resetCreate" icon="el-icon-refresh-left">重置</el-button>
+            </el-col>
+          </el-row>
+        </el-form>
+      </el-card>
 
-        <el-form-item label="开始时间">
-          <!-- 注意：value-format 直接给后端 LocalDateTime（ISO 字符串） -->
-          <el-date-picker
-            v-model="createForm.startTime"
-            type="datetime"
-            placeholder="请选择开始时间"
-            style="width: 360px"
-            value-format="YYYY-MM-DDTHH:mm:ss"
+      <!-- 考试列表 -->
+      <el-card class="list-card" shadow="hover">
+        <template #header>
+          <div class="card-header">
+            <span><i class="el-icon-s-order"></i> 考试场次列表</span>
+            <el-button type="text" @click="loadSessions" icon="el-icon-refresh">刷新列表</el-button>
+          </div>
+        </template>
+
+        <el-table :data="sessions" border stripe style="width: 100%">
+          <el-table-column prop="id" label="ID" width="70" align="center" />
+          <el-table-column prop="name" label="考试名称" min-width="180" show-overflow-tooltip />
+          <el-table-column prop="examPaperId" label="试卷ID" width="80" align="center" />
+          <el-table-column label="时间安排" width="320">
+            <template #default="scope">
+              <div class="time-info">
+                <span><i class="el-icon-time"></i> {{ formatTime(scope.row.startTime) }}</span>
+                <span class="separator">至</span>
+                <span>{{ formatTime(scope.row.endTime) }}</span>
+              </div>
+            </template>
+          </el-table-column>
+          <el-table-column prop="durationMinutes" label="时长" width="80" align="center">
+            <template #default="scope">{{ scope.row.durationMinutes }}分</template>
+          </el-table-column>
+          <el-table-column prop="status" label="状态" width="100" align="center">
+            <template #default="scope">
+              <el-tag :type="getStatusType(scope.row.status)" size="small">{{ scope.row.status }}</el-tag>
+            </template>
+          </el-table-column>
+
+          <el-table-column label="已分配" width="100" align="center">
+            <template #default="scope">
+              <el-tag type="info" effect="plain">{{ assignmentCountMap[scope.row.id] ?? 0 }}人</el-tag>
+            </template>
+          </el-table-column>
+
+          <el-table-column label="操作" width="380" fixed="right" align="center">
+            <template #default="scope">
+              <el-button-group>
+                <el-button size="small" type="primary" plain icon="el-icon-user" @click="openAssignDialog(scope.row)">分配</el-button>
+                <el-button size="small" type="success" plain icon="el-icon-data-analysis" @click="goScorePage(scope.row)">成绩</el-button>
+                <el-button size="small" type="warning" plain icon="el-icon-monitor" @click="goMonitorPage(scope.row)">监控</el-button>
+                <el-button size="small" type="info" plain icon="el-icon-edit-outline" @click="goGradingPage(scope.row)">批改</el-button>
+                <el-button size="small" type="danger" plain icon="el-icon-delete" @click="removeSession(scope.row)"></el-button>
+              </el-button-group>
+            </template>
+          </el-table-column>
+        </el-table>
+
+        <div class="hint-alert">
+          <el-alert
+            title="说明：考试=考试场次(ExamSession)，关联到试卷模板(ExamPaper)。学生端“考试中心/我的考试”读取的是场次。现在学生只能看到“被分配”的场次。"
+            type="info"
+            show-icon
+            :closable="false"
           />
-        </el-form-item>
-
-        <el-form-item label="覆盖时长(可选)">
-          <el-input-number v-model="createForm.overrideDurationMinutes" :min="1" />
-          <div class="tip"><small>不填则默认使用试卷的时长（试卷模板默认时长）</small></div>
-        </el-form-item>
-
-        <el-form-item>
-          <el-button type="primary" :loading="creating" @click="createSession">创建考试</el-button>
-          <el-button @click="resetCreate">重置</el-button>
-        </el-form-item>
-      </el-form>
-    </el-card>
-
-    <el-card class="card" style="margin-top: 16px">
-      <template #header>
-        <div class="card-header">
-          <span>我创建的考试场次</span>
-          <el-button text type="primary" @click="loadSessions">刷新</el-button>
         </div>
-      </template>
+      </el-card>
 
-      <el-table :data="sessions" border style="width: 100%">
-        <el-table-column prop="id" label="ID" width="80" />
-        <el-table-column prop="name" label="考试名称" min-width="180" />
-        <el-table-column prop="examPaperId" label="试卷ID" width="100" />
-        <el-table-column prop="startTime" label="开始时间" width="190" />
-        <el-table-column prop="endTime" label="结束时间" width="190" />
-        <el-table-column prop="durationMinutes" label="时长(分钟)" width="120" />
-        <el-table-column prop="status" label="状态" width="100" />
-
-        <!-- ✅ 新增：已分配人数（快速查看） -->
-        <el-table-column label="已分配人数" width="120">
-          <template #default="scope">
-            <span>{{ assignmentCountMap[scope.row.id] ?? 0 }}</span>
-          </template>
-        </el-table-column>
-
-        <el-table-column label="操作" width="320">
-          <template #default="scope">
-            <el-button size="small" type="primary" @click="openAssignDialog(scope.row)">分配学生</el-button>
-            <el-button size="small" @click="goScorePage(scope.row)">成绩分析</el-button>
-            <el-button size="small" @click="goMonitorPage(scope.row)">监控</el-button>
-            <el-button size="small" type="danger" @click="removeSession(scope.row)">删除</el-button>
-            <!-- 新增：主观题批改按钮 -->
-            <el-button size="small" type="success" @click="goGradingPage(scope.row)">批改主观题</el-button>
-          </template>
-        </el-table-column>
-      </el-table>
-
-      <div class="hint">
-        <small>说明：考试=考试场次(ExamSession)，关联到试卷模板(ExamPaper)。学生端“考试中心/我的考试”读取的是场次。现在学生只能看到“被分配”的场次。</small>
-      </div>
-    </el-card>
-
-    <!-- ============================ -->
-    <!-- 考试分配弹窗 -->
-    <!-- ============================ -->
-    <el-dialog v-model="assignDialogVisible" title="分配考试给学生" width="860px">
-      <div v-if="assigningSession" style="margin-bottom: 10px; color: #666;">
-        <b>当前考试场次：</b>{{ assigningSession.id }} - {{ assigningSession.name }}
-      </div>
-
-      <el-alert
-        type="info"
-        :closable="false"
-        show-icon
-        title="说明：左侧勾选要分配的学生，点击保存后，学生端才会看到该考试。"
-        style="margin-bottom: 12px"
-      />
-
-      <div class="assign-layout">
-        <!-- 左侧：学生列表 -->
-        <div class="assign-left">
-          <div class="assign-toolbar">
-            <el-input v-model="studentKeyword" placeholder="按用户名/姓名搜索" clearable />
-            <el-button @click="selectAllFiltered">全选</el-button>
-            <el-button @click="clearSelected">清空</el-button>
-          </div>
-
-          <el-table
-            :data="filteredStudents"
-            height="360"
-            border
-            style="width: 100%"
-            @selection-change="onStudentSelectionChange"
-            ref="studentTableRef"
-          >
-            <el-table-column type="selection" width="50" />
-            <el-table-column prop="id" label="ID" width="80" />
-            <el-table-column prop="username" label="用户名" width="160" />
-            <el-table-column prop="realName" label="姓名" />
-          </el-table>
+      <!-- ============================ -->
+      <!-- 考试分配弹窗 -->
+      <!-- ============================ -->
+      <el-dialog v-model="assignDialogVisible" title="分配考试给学生" width="900px" custom-class="assign-dialog">
+        <div v-if="assigningSession" class="dialog-subtitle">
+          <i class="el-icon-collection-tag"></i> 当前考试：<span class="highlight">{{ assigningSession.name }}</span> (ID: {{ assigningSession.id }})
         </div>
 
-        <!-- 右侧：已勾选学生 + 已分配学生 -->
-        <div class="assign-right">
-          <h4 style="margin: 0 0 10px;">已选择（将分配）</h4>
-          <div class="selected-box">
-            <div v-if="selectedStudentIds.length === 0" class="empty">暂无选择</div>
-            <el-tag
-              v-for="sid in selectedStudentIds"
-              :key="sid"
-              closable
-              @close="removeSelectedById(sid)"
-              style="margin: 0 8px 8px 0"
+        <div class="assign-layout">
+          <!-- 左侧：学生列表 -->
+          <div class="assign-left">
+            <div class="assign-toolbar">
+              <el-input v-model="studentKeyword" placeholder="搜索学生..." prefix-icon="el-icon-search" clearable size="small" style="width: 200px" />
+              <div class="toolbar-btns">
+                <el-button size="small" @click="selectAllFiltered">全选</el-button>
+                <el-button size="small" @click="clearSelected">清空</el-button>
+              </div>
+            </div>
+
+            <el-table
+              :data="filteredStudents"
+              height="400"
+              border
+              stripe
+              style="width: 100%"
+              @selection-change="onStudentSelectionChange"
+              ref="studentTableRef"
+              size="small"
             >
-              {{ studentNameMap[sid] ? studentNameMap[sid] : sid }}
-            </el-tag>
+              <el-table-column type="selection" width="45" align="center" />
+              <el-table-column prop="username" label="用户名" width="120" show-overflow-tooltip />
+              <el-table-column prop="realName" label="姓名" show-overflow-tooltip />
+            </el-table>
           </div>
 
-          <h4 style="margin: 12px 0 10px;">已分配（当前）</h4>
-          <div class="selected-box">
-            <div v-if="assignedStudentIds.length === 0" class="empty">暂无分配</div>
-            <el-tag
-              v-for="sid in assignedStudentIds"
-              :key="sid"
-              type="success"
-              closable
-              @close="revokeSingle(sid)"
-              style="margin: 0 8px 8px 0"
-            >
-              {{ studentNameMap[sid] ? studentNameMap[sid] : sid }}
-            </el-tag>
+          <!-- 右侧：已勾选学生 + 已分配学生 -->
+          <div class="assign-right">
+            <div class="section-title">
+              <span>已选择（将分配）</span>
+              <el-tag size="small" type="primary">{{ selectedStudentIds.length }}</el-tag>
+            </div>
+            <div class="selected-box">
+              <div v-if="selectedStudentIds.length === 0" class="empty-state">
+                <i class="el-icon-mouse"></i> 请在左侧勾选学生
+              </div>
+              <el-scrollbar height="150px" v-else>
+                <div class="tag-container">
+                  <el-tag
+                    v-for="sid in selectedStudentIds"
+                    :key="sid"
+                    closable
+                    @close="removeSelectedById(sid)"
+                    size="small"
+                    class="student-tag"
+                  >
+                    {{ studentNameMap[sid] ? studentNameMap[sid] : sid }}
+                  </el-tag>
+                </div>
+              </el-scrollbar>
+            </div>
+
+            <div class="section-title" style="margin-top: 15px;">
+              <span>已分配（当前）</span>
+              <el-tag size="small" type="success">{{ assignedStudentIds.length }}</el-tag>
+            </div>
+            <div class="selected-box">
+              <div v-if="assignedStudentIds.length === 0" class="empty-state">
+                <i class="el-icon-info"></i> 暂无已分配学生
+              </div>
+              <el-scrollbar height="150px" v-else>
+                <div class="tag-container">
+                  <el-tag
+                    v-for="sid in assignedStudentIds"
+                    :key="sid"
+                    type="success"
+                    closable
+                    @close="revokeSingle(sid)"
+                    size="small"
+                    class="student-tag"
+                  >
+                    {{ studentNameMap[sid] ? studentNameMap[sid] : sid }}
+                  </el-tag>
+                </div>
+              </el-scrollbar>
+            </div>
           </div>
         </div>
-      </div>
 
-      <template #footer>
-        <el-button @click="assignDialogVisible = false">关闭</el-button>
-
-        <!-- ✅ 新增：一键撤销全部分配 -->
-        <el-button
-          type="danger"
-          plain
-          :disabled="!assigningSession || assignedStudentIds.length === 0"
-          :loading="clearingAll"
-          @click="clearAllAssignments"
-        >
-          一键撤销全部分配
-        </el-button>
-
-        <el-button type="primary" :loading="assignSaving" @click="saveAssignments">保存分配</el-button>
-      </template>
-    </el-dialog>
+        <template #footer>
+          <div class="dialog-footer">
+            <el-button
+              type="danger"
+              plain
+              icon="el-icon-delete"
+              :disabled="!assigningSession || assignedStudentIds.length === 0"
+              :loading="clearingAll"
+              @click="clearAllAssignments"
+            >
+              一键撤销全部
+            </el-button>
+            <div>
+              <el-button @click="assignDialogVisible = false">关闭</el-button>
+              <el-button type="primary" :loading="assignSaving" @click="saveAssignments">保存分配</el-button>
+            </div>
+          </div>
+        </template>
+      </el-dialog>
+    </div>
   </div>
 </template>
 
@@ -563,6 +646,21 @@ const goGradingPage = (row) => {
   router.push({ path: '/teacher/grading', query: { examSessionId: row.id } });
 };
 
+// 辅助函数
+const formatTime = (timeStr) => {
+  if (!timeStr) return '-';
+  return timeStr.replace('T', ' ');
+};
+
+const getStatusType = (status) => {
+  const map = {
+    '未开始': 'info',
+    '进行中': 'success',
+    '已结束': 'danger'
+  };
+  return map[status] || '';
+};
+
 onMounted(async () => {
   await loadExamPapers();
   await loadSessions();
@@ -570,74 +668,199 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.page {
-  padding: 16px;
+.page-container {
+  min-height: 100vh;
+  background-color: #f5f7fa;
+  padding-bottom: 20px;
 }
 
-.topbar {
+.page-header {
+  background: #fff;
+  padding: 16px 24px;
+  box-shadow: 0 1px 4px rgba(0, 21, 41, 0.08);
+  margin-bottom: 20px;
+}
+
+.content-wrapper {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+/* 统计卡片 */
+.stats-row {
+  margin-bottom: 20px;
+}
+
+.stat-card {
+  border: none;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.stat-card :deep(.el-card__body) {
+  padding: 20px;
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 12px;
 }
 
-.title {
-  margin: 0;
+.stat-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 24px;
+  color: #fff;
+  margin-right: 15px;
 }
 
-.card {
-  width: 100%;
+.bg-blue { background: #409eff; }
+.bg-green { background: #67c23a; }
+.bg-orange { background: #e6a23c; }
+.bg-gray { background: #909399; }
+
+.stat-info {
+  flex: 1;
+}
+
+.stat-value {
+  font-size: 24px;
+  font-weight: bold;
+  color: #303133;
+  line-height: 1.2;
+}
+
+.stat-label {
+  font-size: 12px;
+  color: #909399;
+  margin-top: 4px;
+}
+
+/* 创建卡片 */
+.create-card {
+  margin-bottom: 20px;
+  border-radius: 8px;
 }
 
 .card-header {
+  font-weight: 600;
+  font-size: 16px;
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
 
-.create-form .tip {
-  margin-left: 8px;
-  color: #888;
+.form-actions {
+  display: flex;
+  align-items: flex-end;
+  padding-bottom: 18px;
 }
 
-.hint {
-  margin-top: 12px;
-  color: #666;
+/* 列表卡片 */
+.list-card {
+  border-radius: 8px;
+}
+
+.time-info {
+  display: flex;
+  align-items: center;
+  font-size: 13px;
+  color: #606266;
+}
+
+.separator {
+  margin: 0 8px;
+  color: #909399;
+}
+
+.hint-alert {
+  margin-top: 15px;
+}
+
+/* 分配弹窗 */
+.dialog-subtitle {
+  margin-bottom: 15px;
+  padding: 10px;
+  background: #f0f9eb;
+  border-radius: 4px;
+  color: #67c23a;
+  font-size: 14px;
+}
+
+.highlight {
+  font-weight: bold;
+  margin: 0 4px;
 }
 
 .assign-layout {
   display: grid;
-  grid-template-columns: 1fr 320px;
-  gap: 12px;
+  grid-template-columns: 1fr 300px;
+  gap: 20px;
+  height: 450px;
+}
+
+.assign-left {
+  display: flex;
+  flex-direction: column;
 }
 
 .assign-toolbar {
   display: flex;
-  gap: 8px;
+  justify-content: space-between;
   margin-bottom: 10px;
 }
 
-.assign-left {
-  min-width: 0;
+.assign-right {
+  border-left: 1px solid #ebeef5;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
 }
 
-.assign-right {
-  min-width: 0;
-  border-left: 1px solid #eee;
-  padding-left: 12px;
+.section-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  font-weight: 500;
+  color: #303133;
 }
 
 .selected-box {
-  min-height: 90px;
-  border: 1px dashed #dcdfe6;
-  border-radius: 6px;
-  padding: 10px;
+  flex: 1;
+  border: 1px solid #ebeef5;
+  border-radius: 4px;
   background: #fafafa;
+  padding: 10px;
+  overflow: hidden;
 }
 
-.empty {
-  color: #999;
+.empty-state {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  color: #909399;
   font-size: 13px;
+  gap: 5px;
+}
+
+.tag-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.student-tag {
+  margin-bottom: 4px;
+}
+
+.dialog-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 </style>
-

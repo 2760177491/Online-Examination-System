@@ -85,6 +85,8 @@
             <version>5.2.5</version>
         </dependency>
 
+        <!-- 图片验证码无需额外依赖：使用 Java2D 生成 png 并 base64 返回 -->
+
     </dependencies>
 
     <build>

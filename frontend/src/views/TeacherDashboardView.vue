@@ -1,58 +1,77 @@
 <template>
   <div class="dashboard-container">
-    <el-container>
-      <el-header>
-        <div class="header-content">
-          <h1>教师仪表板</h1>
+    <el-container class="full-height">
+      <el-header class="app-header">
+        <div class="header-inner">
+          <div class="logo">
+            <i class="el-icon-monitor"></i>
+            <h1>教师仪表板</h1>
+          </div>
           <div class="user-info">
-            <span>欢迎，{{ username }}</span>
-            <el-button type="primary" @click="logout">退出登录</el-button>
+            <span class="welcome-text">欢迎，{{ username }}</span>
+            <el-dropdown trigger="click">
+              <span class="el-dropdown-link">
+                <el-avatar :size="32" icon="el-icon-user-solid" class="user-avatar"></el-avatar>
+                <i class="el-icon-arrow-down el-icon--right"></i>
+              </span>
+              <template #dropdown>
+                <el-dropdown-menu>
+                  <el-dropdown-item @click="goProfile">个人信息</el-dropdown-item>
+                  <el-dropdown-item divided @click="logout">退出登录</el-dropdown-item>
+                </el-dropdown-menu>
+              </template>
+            </el-dropdown>
           </div>
         </div>
       </el-header>
 
-      <el-container>
-        <el-aside width="200px" class="sidebar-aside">
+      <el-container class="main-container">
+        <el-aside width="220px" class="sidebar-aside">
           <el-menu
-              default-active="1"
+              :default-active="activeMenu"
               class="el-menu-vertical"
-              background-color="#545c64"
-              text-color="#fff"
-              active-text-color="#ffd04b"
+              background-color="#304156"
+              text-color="#bfcbd9"
+              active-text-color="#409eff"
           >
-            <el-menu-item index="1" @click="activeMenu = 'questions'">
+            <el-menu-item index="questions" @click="activeMenu = 'questions'">
+              <i class="el-icon-document"></i>
               <span>题库管理</span>
             </el-menu-item>
-            <el-menu-item index="2" @click="activeMenu = 'exams'">
+            <el-menu-item index="exams" @click="activeMenu = 'exams'">
+              <i class="el-icon-files"></i>
               <span>试卷管理</span>
             </el-menu-item>
-            <el-menu-item index="3" @click="activeMenu = 'examSessions'">
+            <el-menu-item index="examSessions" @click="activeMenu = 'examSessions'">
+              <i class="el-icon-timer"></i>
               <span>考试管理</span>
             </el-menu-item>
-            <el-menu-item index="4" @click="activeMenu = 'results'">
+            <el-menu-item index="results" @click="activeMenu = 'results'">
+              <i class="el-icon-data-analysis"></i>
               <span>成绩管理</span>
             </el-menu-item>
-            <el-menu-item index="5" @click="goToGrading">
+            <el-menu-item index="grading" @click="goToGrading">
+              <i class="el-icon-edit-outline"></i>
               <span>主观题批改</span>
             </el-menu-item>
           </el-menu>
         </el-aside>
 
-        <el-main>
-          <div v-if="activeMenu === 'questions'">
-            <div class="section-header">
-              <h2>题库管理</h2>
+        <el-main class="app-content">
+          <div v-if="activeMenu === 'questions'" class="content-wrapper">
+            <div class="page-header">
+              <h2 class="page-title">题库管理</h2>
             </div>
 
-            <!-- 新增：题库筛选表单（关键字 + 题型 + 教师） -->
-            <el-card class="filter-card">
-              <el-form :inline="true" :model="questionFilter" label-width="70px">
+            <!-- 题库筛选表单 -->
+            <el-card class="filter-card" shadow="never">
+              <el-form :inline="true" :model="questionFilter" label-width="70px" class="filter-form">
                 <el-form-item label="关键字">
-                  <el-input v-model="questionFilter.keyword" placeholder="按题干关键字搜索" clearable style="width: 240px" />
+                  <el-input v-model="questionFilter.keyword" placeholder="按题干关键字搜索" clearable style="width: 200px" />
                 </el-form-item>
 
                 <el-form-item label="题型">
-                  <el-select v-model="questionFilter.type" placeholder="全部题型" clearable style="width: 180px">
+                  <el-select v-model="questionFilter.type" placeholder="全部题型" clearable style="width: 140px">
                     <el-option label="单选题" value="single_choice" />
                     <el-option label="多选题" value="multiple_choice" />
                     <el-option label="判断题" value="true_false" />
@@ -61,15 +80,14 @@
                 </el-form-item>
 
                 <el-form-item label="教师">
-                  <el-select v-model="questionFilter.createdBy" placeholder="全部教师" clearable style="width: 200px">
+                  <el-select v-model="questionFilter.createdBy" placeholder="全部教师" clearable style="width: 160px">
                     <el-option label="仅看我的题目" :value="currentUserId" />
-                    <!-- 关键修复：ElOption 的 value 不能是 null，改用哨兵值 -->
                     <el-option label="所有教师" :value="ALL_TEACHERS" />
                   </el-select>
                 </el-form-item>
 
                 <el-form-item label="难度">
-                  <el-select v-model="questionFilter.difficulty" placeholder="全部难度" clearable style="width: 160px">
+                  <el-select v-model="questionFilter.difficulty" placeholder="全部难度" clearable style="width: 120px">
                     <el-option label="简单" value="简单" />
                     <el-option label="中等" value="中等" />
                     <el-option label="困难" value="困难" />
@@ -77,43 +95,51 @@
                 </el-form-item>
 
                 <el-form-item>
-                  <el-button type="primary" @click="applyQuestionFilter">查询</el-button>
-                  <el-button @click="resetQuestionFilter">重置</el-button>
+                  <el-button type="primary" icon="el-icon-search" @click="applyQuestionFilter">查询</el-button>
+                  <el-button icon="el-icon-refresh" @click="resetQuestionFilter">重置</el-button>
                 </el-form-item>
               </el-form>
             </el-card>
 
             <div class="question-split">
               <!-- 左侧：编辑 / 新增 -->
-              <el-card class="left-card">
-                <div class="card-title">{{ editingId ? '编辑题目' : '新增题目' }}</div>
+              <el-card class="left-card" shadow="hover">
+                <template #header>
+                  <div class="card-header">
+                    <span>{{ editingId ? '编辑题目' : '新增题目' }}</span>
+                  </div>
+                </template>
 
-                <el-form :model="form" label-width="90px">
+                <el-form :model="form" label-width="80px" class="question-form">
                   <el-form-item label="题干">
-                    <el-input type="textarea" v-model="form.title" placeholder="请输入题干" />
+                    <el-input type="textarea" v-model="form.title" placeholder="请输入题干" :rows="3" />
                   </el-form-item>
 
-                  <el-form-item label="题型">
-                    <el-select v-model="form.type" placeholder="请选择题型" @change="handleTypeChange">
-                      <el-option label="单选题" value="single_choice" />
-                      <el-option label="多选题" value="multiple_choice" />
-                      <el-option label="判断题" value="true_false" />
-                      <el-option label="主观题" value="subjective" />
-                    </el-select>
-                  </el-form-item>
-
-                  <el-form-item label="难度">
-                    <el-select v-model="form.difficulty" placeholder="请选择难度" style="width: 200px">
-                      <el-option label="简单" value="简单" />
-                      <el-option label="中等" value="中等" />
-                      <el-option label="困难" value="困难" />
-                    </el-select>
-                    <div class="tip"><small>用于题库筛选与后续随机组卷控制</small></div>
-                  </el-form-item>
+                  <el-row :gutter="20">
+                    <el-col :span="12">
+                      <el-form-item label="题型">
+                        <el-select v-model="form.type" placeholder="请选择题型" @change="handleTypeChange" style="width: 100%">
+                          <el-option label="单选题" value="single_choice" />
+                          <el-option label="多选题" value="multiple_choice" />
+                          <el-option label="判断题" value="true_false" />
+                          <el-option label="主观题" value="subjective" />
+                        </el-select>
+                      </el-form-item>
+                    </el-col>
+                    <el-col :span="12">
+                      <el-form-item label="难度">
+                        <el-select v-model="form.difficulty" placeholder="请选择难度" style="width: 100%">
+                          <el-option label="简单" value="简单" />
+                          <el-option label="中等" value="中等" />
+                          <el-option label="困难" value="困难" />
+                        </el-select>
+                      </el-form-item>
+                    </el-col>
+                  </el-row>
 
                   <template v-if="isObjective">
                     <el-form-item v-if="form.type !== 'true_false'" label="选项数量">
-                      <el-select v-model="optionCount" placeholder="请选择" @change="resetOptionsByCount">
+                      <el-select v-model="optionCount" placeholder="请选择" @change="resetOptionsByCount" style="width: 100px">
                         <el-option v-for="n in 9" :key="n + 1" :label="String(n + 1)" :value="n + 1" />
                       </el-select>
                     </el-form-item>
@@ -154,35 +180,53 @@
                     </el-form-item>
                   </template>
 
-                  <el-form-item label="分值">
-                    <el-input-number v-model="form.score" :min="1" />
-                  </el-form-item>
+                  <el-row :gutter="20">
+                    <el-col :span="12">
+                      <el-form-item label="分值">
+                        <el-input-number v-model="form.score" :min="1" style="width: 100%" />
+                      </el-form-item>
+                    </el-col>
+                    <el-col :span="12">
+                      <el-form-item label="教师ID">
+                        <el-input v-model="form.createdBy" disabled style="width: 100%">
+                           <template #append>自动获取</template>
+                        </el-input>
+                      </el-form-item>
+                    </el-col>
+                  </el-row>
 
-                  <el-form-item label="教师ID">
-                    <el-input-number v-model="form.createdBy" :min="1" disabled />
-                    <div class="tip"><small>已从登录信息自动获取，无需手动填写</small></div>
-                  </el-form-item>
-
-                  <el-form-item>
+                  <el-form-item class="form-actions">
                     <el-button type="primary" @click="submitQuestion">{{ editingId ? '更新题目' : '添加题目' }}</el-button>
                     <el-button v-if="editingId" @click="cancelEdit">取消编辑</el-button>
                   </el-form-item>
                 </el-form>
               </el-card>
 
-              <!-- 右侧：题目列表（选择后到左侧编辑） -->
-              <el-card class="right-card">
-                <div class="card-title">题目列表</div>
-                <el-table :data="questions" style="width: 100%" border>
-                  <el-table-column prop="id" label="ID" width="80"></el-table-column>
-                  <el-table-column prop="title" label="题目内容"></el-table-column>
-                  <el-table-column prop="type" label="题目类型" width="140"></el-table-column>
-                  <el-table-column prop="difficulty" label="难度" width="100"></el-table-column>
-                  <el-table-column prop="score" label="分值" width="100"></el-table-column>
-                  <el-table-column label="操作" width="180">
+              <!-- 右侧：题目列表 -->
+              <el-card class="right-card" shadow="hover">
+                <template #header>
+                  <div class="card-header">
+                    <span>题目列表</span>
+                  </div>
+                </template>
+                <el-table :data="questions" style="width: 100%" border stripe height="600">
+                  <el-table-column prop="id" label="ID" width="60" align="center"></el-table-column>
+                  <el-table-column prop="title" label="题目内容" show-overflow-tooltip></el-table-column>
+                  <el-table-column prop="type" label="题型" width="100" align="center">
                     <template #default="scope">
-                      <el-button size="small" @click="editQuestion(scope.row)">编辑</el-button>
-                      <el-button size="small" type="danger" @click="deleteQuestion(scope.row)">删除</el-button>
+                      <el-tag size="small" effect="plain">{{ scope.row.type }}</el-tag>
+                    </template>
+                  </el-table-column>
+                  <el-table-column prop="difficulty" label="难度" width="80" align="center">
+                    <template #default="scope">
+                      <el-tag size="small" :type="scope.row.difficulty === '困难' ? 'danger' : (scope.row.difficulty === '中等' ? 'warning' : 'success')">{{ scope.row.difficulty }}</el-tag>
+                    </template>
+                  </el-table-column>
+                  <el-table-column prop="score" label="分值" width="70" align="center"></el-table-column>
+                  <el-table-column label="操作" width="150" align="center">
+                    <template #default="scope">
+                      <el-button size="small" type="primary" link @click="editQuestion(scope.row)">编辑</el-button>
+                      <el-button size="small" type="danger" link @click="deleteQuestion(scope.row)">删除</el-button>
                     </template>
                   </el-table-column>
                 </el-table>
@@ -190,50 +234,66 @@
             </div>
           </div>
 
-          <div v-if="activeMenu === 'exams'">
-            <h2>试卷管理</h2>
-            <el-button type="primary" @click="goToExamCreate">创建试卷</el-button>
-            <el-table :data="exams" style="width: 100%; margin-top: 20px">
-              <el-table-column prop="id" label="ID" width="80"></el-table-column>
-              <el-table-column prop="title" label="试卷标题"></el-table-column>
-              <el-table-column prop="duration" label="考试时长(分钟)" width="150"></el-table-column>
-              <el-table-column prop="totalScore" label="总分" width="100"></el-table-column>
-              <el-table-column label="操作" width="180">
-                <template #default="scope">
-                  <el-button size="small" @click="editExam(scope.row)">编辑</el-button>
-                  <el-button size="small" type="danger" @click="deleteExam(scope.row)">删除</el-button>
-                </template>
-              </el-table-column>
-            </el-table>
+          <div v-if="activeMenu === 'exams'" class="content-wrapper">
+            <div class="page-header">
+              <h2 class="page-title">试卷管理</h2>
+              <el-button type="primary" icon="el-icon-plus" @click="goToExamCreate">创建试卷</el-button>
+            </div>
+            <el-card shadow="hover">
+              <el-table :data="exams" style="width: 100%" border stripe>
+                <el-table-column prop="id" label="ID" width="80" align="center"></el-table-column>
+                <el-table-column prop="title" label="试卷标题" show-overflow-tooltip></el-table-column>
+                <el-table-column prop="duration" label="考试时长(分钟)" width="150" align="center"></el-table-column>
+                <el-table-column prop="totalScore" label="总分" width="100" align="center"></el-table-column>
+                <el-table-column label="操作" width="180" align="center">
+                  <template #default="scope">
+                    <el-button size="small" type="primary" link @click="editExam(scope.row)">编辑</el-button>
+                    <el-button size="small" type="danger" link @click="deleteExam(scope.row)">删除</el-button>
+                  </template>
+                </el-table-column>
+              </el-table>
+            </el-card>
           </div>
 
-          <div v-if="activeMenu === 'examSessions'">
-            <h2>考试管理</h2>
-            <el-alert
-              type="info"
-              show-icon
-              :closable="false"
-              title="说明：试卷=模板(题目+总分+默认时长)，考试=场次(关联试卷+开始/结束时间+状态)。请在这里创建考试场次后，学生端‘考试中心’才能看到并参加。"
-              style="margin: 12px 0"
-            />
-            <el-button type="primary" @click="goToExamSessions">前往考试管理页</el-button>
+          <div v-if="activeMenu === 'examSessions'" class="content-wrapper">
+            <div class="page-header">
+              <h2 class="page-title">考试管理</h2>
+            </div>
+            <el-card shadow="hover">
+              <el-alert
+                type="info"
+                show-icon
+                :closable="false"
+                title="说明：试卷=模板(题目+总分+默认时长)，考试=场次(关联试卷+开始/结束时间+状态)。请在这里创建考试场次后，学生端‘考试中心’才能看到并参加。"
+                style="margin-bottom: 20px"
+              />
+              <el-button type="primary" @click="goToExamSessions">前往考试管理页</el-button>
+            </el-card>
           </div>
 
-          <div v-if="activeMenu === 'results'">
-            <h2>成绩管理</h2>
-            <el-table :data="results" style="width: 100%">
-              <el-table-column prop="id" label="ID" width="80"></el-table-column>
-              <el-table-column prop="studentName" label="学生姓名"></el-table-column>
-              <el-table-column prop="examTitle" label="试卷标题"></el-table-column>
-              <el-table-column prop="score" label="得分" width="100"></el-table-column>
-              <el-table-column prop="totalScore" label="总分" width="100"></el-table-column>
-              <el-table-column prop="submitTime" label="提交时间" width="180"></el-table-column>
-              <el-table-column label="操作" width="120">
-                <template #default="scope">
-                  <el-button size="small" @click="viewResult(scope.row)">查看详情</el-button>
-                </template>
-              </el-table-column>
-            </el-table>
+          <div v-if="activeMenu === 'results'" class="content-wrapper">
+            <div class="page-header">
+              <h2 class="page-title">成绩管理</h2>
+            </div>
+            <el-card shadow="hover">
+              <el-table :data="results" style="width: 100%" border stripe>
+                <el-table-column prop="id" label="ID" width="80" align="center"></el-table-column>
+                <el-table-column prop="studentName" label="学生姓名" align="center"></el-table-column>
+                <el-table-column prop="examTitle" label="试卷标题" show-overflow-tooltip></el-table-column>
+                <el-table-column prop="score" label="得分" width="100" align="center">
+                   <template #default="scope">
+                      <span style="font-weight: bold; color: #409eff;">{{ scope.row.score }}</span>
+                   </template>
+                </el-table-column>
+                <el-table-column prop="totalScore" label="总分" width="100" align="center"></el-table-column>
+                <el-table-column prop="submitTime" label="提交时间" width="180" align="center"></el-table-column>
+                <el-table-column label="操作" width="120" align="center">
+                  <template #default="scope">
+                    <el-button size="small" @click="viewResult(scope.row)">查看详情</el-button>
+                  </template>
+                </el-table-column>
+              </el-table>
+            </el-card>
           </div>
         </el-main>
       </el-container>
@@ -639,6 +699,10 @@ export default {
       router.push("/login");
     };
 
+    const goProfile = () => {
+      router.push('/profile');
+    };
+
     onMounted(() => {
       buildOptionsByCount(optionCount.value);
 
@@ -682,50 +746,49 @@ export default {
     };
 
     return {
+      // 顶部信息
       username,
       activeMenu,
+
+      // 题库数据
       questions,
       exams,
       results,
-      deleteQuestion,
-      deleteExam,
-      viewResult,
-      editExam,
-      logout,
 
-      // 题库管理（内嵌版）
+      // 题库筛选（模板会用到）
+      questionFilter,
+      currentUserId,
+      ALL_TEACHERS,
+
+      // 题库编辑/新增
       editingId,
       form,
+      isObjective,
       optionCount,
       options,
       tfOptions,
-      isObjective,
       currentOptionKeys,
       singleAnswer,
       multipleAnswers,
-      resetOptionsByCount,
-      handleTypeChange,
-      submitQuestion,
-      editQuestion,
-      cancelEdit,
 
-      // 创建试卷
-      goToExamCreate,
-
-      // 考试管理
-      goToExamSessions,
-
-      // 主观题批改
+      // 方法
+      logout,
+      goProfile,
       goToGrading,
+      goToExamCreate,
+      goToExamSessions,
+      editExam,
+      deleteExam,
+      viewResult,
 
-      // 筛选相关
-      questionFilter,
       applyQuestionFilter,
       resetQuestionFilter,
-
-      // 最稳：模板只使用 currentUserId，不再依赖函数调用
-      currentUserId,
-      ALL_TEACHERS,
+      handleTypeChange,
+      resetOptionsByCount,
+      submitQuestion,
+      cancelEdit,
+      editQuestion,
+      deleteQuestion,
     };
   },
 };
@@ -734,70 +797,183 @@ export default {
 <style scoped>
 .dashboard-container {
   height: 100vh;
+  background-color: #f0f2f5;
+  font-family: 'Helvetica Neue', Helvetica, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', '微软雅黑', Arial, sans-serif;
 }
 
-.header-content {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.sidebar-aside {
-  background-color: #545c64;
-}
-
-.el-menu-vertical {
+.full-height {
   height: 100%;
 }
 
-.section-header {
+/* Header Styles */
+.app-header {
+  background: #fff;
+  box-shadow: 0 1px 4px rgba(0, 21, 41, 0.08);
+  padding: 0 20px;
+  height: 60px;
+  line-height: 60px;
+  z-index: 10;
+}
+
+.header-inner {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 12px;
+  height: 100%;
 }
 
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #304156;
+}
+
+.logo h1 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.welcome-text {
+  font-size: 14px;
+  color: #606266;
+}
+
+.user-avatar {
+  cursor: pointer;
+  background-color: #409eff;
+}
+
+.el-dropdown-link {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+}
+
+/* Sidebar Styles */
+.sidebar-aside {
+  background-color: #304156;
+  box-shadow: 2px 0 6px rgba(0, 21, 41, 0.35);
+  z-index: 9;
+}
+
+.el-menu-vertical {
+  border-right: none;
+}
+
+/* Main Content Styles */
+.app-content {
+  padding: 20px;
+  background-color: #f0f2f5;
+  overflow-y: auto;
+}
+
+.content-wrapper {
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.page-title {
+  font-size: 24px;
+  color: #303133;
+  margin: 0;
+  padding-left: 12px;
+  border-left: 4px solid #409eff;
+  line-height: 1.2;
+}
+
+/* Filter Card */
+.filter-card {
+  margin-bottom: 20px;
+  border-radius: 4px;
+}
+
+.filter-form .el-form-item {
+  margin-bottom: 0;
+  margin-right: 20px;
+}
+
+/* Question Split Layout */
 .question-split {
   display: flex;
-  gap: 16px;
+  gap: 20px;
+  align-items: flex-start;
 }
 
 .left-card {
-  flex: 1;
+  flex: 0 0 400px;
+  border-radius: 4px;
 }
 
 .right-card {
   flex: 1;
+  border-radius: 4px;
 }
 
-.card-title {
-  font-weight: 700;
-  margin-bottom: 12px;
+.card-header {
+  font-weight: 600;
+  font-size: 16px;
+  color: #303133;
+}
+
+/* Form Styles */
+.question-form .el-form-item {
+  margin-bottom: 18px;
 }
 
 .options-editor {
-  width: 100%;
+  background: #f8f9fa;
+  padding: 10px;
+  border-radius: 4px;
+  border: 1px solid #ebeef5;
 }
 
 .option-row {
   display: flex;
-  gap: 12px;
+  gap: 10px;
   align-items: center;
   margin-bottom: 10px;
 }
 
+.option-row:last-child {
+  margin-bottom: 0;
+}
+
 .option-key {
-  width: 22px;
+  width: 24px;
   font-weight: 700;
+  color: #606266;
+  text-align: center;
 }
 
-.tip {
-  margin-left: 8px;
-  color: #888;
+.form-actions {
+  margin-top: 20px;
+  text-align: right;
 }
 
-.filter-card {
-  margin-bottom: 12px;
+/* Responsive */
+@media (max-width: 1200px) {
+  .question-split {
+    flex-direction: column;
+  }
+  .left-card {
+    flex: none;
+    width: 100%;
+  }
 }
 </style>
-

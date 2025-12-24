@@ -1,9 +1,9 @@
 package com.example.onlineexam.controller;
 
-import com.example.onlineexam.dto.ApiResponse;
-import com.example.onlineexam.dto.LoginRequest;
+import com.example.onlineexam.dto.*;
 import com.example.onlineexam.entity.User;
 import com.example.onlineexam.entity.UserRole;
+import com.example.onlineexam.service.CaptchaService;
 import com.example.onlineexam.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -18,10 +18,15 @@ public class UserController {
     @Autowired
     private UserService userService;
 
+    @Autowired
+    private CaptchaService captchaService;
+
     @PostMapping("/register")
     public ApiResponse register(@RequestBody User user) {
         try {
             User savedUser = userService.register(user);
+            // 脱敏：不返回密码
+            savedUser.setPassword(null);
             return ApiResponse.success("注册成功", savedUser);
         } catch (Exception e) {
             return ApiResponse.error(e.getMessage());
@@ -44,6 +49,8 @@ public class UserController {
             session.setAttribute("userId", user.getId());
             session.setAttribute("userRole", user.getRole().name());
 
+            // 脱敏：不返回密码
+            user.setPassword(null);
             return ApiResponse.success("登录成功", user);
         } catch (Exception e) {
             return ApiResponse.error(e.getMessage());
@@ -60,9 +67,76 @@ public class UserController {
     public ApiResponse getCurrentUser(HttpSession session) {
         User user = (User) session.getAttribute("currentUser");
         if (user != null) {
+            // 脱敏：不返回密码
+            user.setPassword(null);
             return ApiResponse.success("获取用户信息成功", user);
         }
         return ApiResponse.error("用户未登录");
+    }
+
+    /**
+     * 获取验证码（图片版）
+     *
+     * 返回：captchaId + imageBase64
+     * 前端只展示图片，不知道正确答案。
+     */
+    @GetMapping("/captcha")
+    public ApiResponse getCaptcha() {
+        CaptchaImageResponse resp = captchaService.createImageCaptcha();
+        return ApiResponse.success("获取验证码成功", resp);
+    }
+
+    /**
+     * 修改用户名（需要验证码）
+     */
+    @PostMapping("/update-username")
+    public ApiResponse updateUsername(@RequestBody UpdateUsernameRequest req, HttpSession session) {
+        try {
+            Long userId = (Long) session.getAttribute("userId");
+            if (userId == null) {
+                return ApiResponse.error("用户未登录");
+            }
+            if (!captchaService.verifyAndConsume(req.getCaptchaId(), req.getCaptchaCode())) {
+                return ApiResponse.error("验证码错误或已过期");
+            }
+
+            User updated = userService.updateUsername(userId, req.getNewUsername());
+
+            // 同步 session + 返回值
+            session.setAttribute("currentUser", updated);
+
+            updated.setPassword(null);
+            return ApiResponse.success("用户名修改成功", updated);
+        } catch (Exception e) {
+            return ApiResponse.error(e.getMessage());
+        }
+    }
+
+    /**
+     * 修改密码（需要验证码）
+     *
+     * 安全策略：
+     * - 修改成功后使当前会话失效，前端需要重新登录
+     */
+    @PostMapping("/update-password")
+    public ApiResponse updatePassword(@RequestBody UpdatePasswordRequest req, HttpSession session) {
+        try {
+            Long userId = (Long) session.getAttribute("userId");
+            if (userId == null) {
+                return ApiResponse.error("用户未登录");
+            }
+            if (!captchaService.verifyAndConsume(req.getCaptchaId(), req.getCaptchaCode())) {
+                return ApiResponse.error("验证码错误或已过期");
+            }
+
+            userService.updatePassword(userId, req.getOldPassword(), req.getNewPassword());
+
+            // 修改密码后强制重新登录
+            session.invalidate();
+            return ApiResponse.success("密码修改成功，请重新登录", null);
+        } catch (Exception e) {
+            return ApiResponse.error(e.getMessage());
+        }
     }
 
     /**
@@ -93,3 +167,4 @@ public class UserController {
         return ApiResponse.success("查询成功", students);
     }
 }
+

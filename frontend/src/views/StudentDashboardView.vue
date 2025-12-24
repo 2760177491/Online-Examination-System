@@ -1,103 +1,139 @@
 <template>
   <div class="dashboard-container">
-    <el-container>
-      <el-header>
-        <div class="header-content">
-          <h1>学生仪表板</h1>
+    <el-container class="full-height">
+      <el-header class="app-header">
+        <div class="header-inner">
+          <div class="logo">
+            <i class="el-icon-monitor"></i>
+            <h1>学生仪表板</h1>
+          </div>
           <div class="user-info">
-            <span>欢迎，{{ username }}</span>
-            <el-button type="primary" @click="logout">退出登录</el-button>
+            <span class="welcome-text">欢迎，{{ username }}</span>
+            <el-dropdown trigger="click">
+              <span class="el-dropdown-link">
+                <el-avatar :size="32" icon="el-icon-user-solid" class="user-avatar"></el-avatar>
+                <i class="el-icon-arrow-down el-icon--right"></i>
+              </span>
+              <template #dropdown>
+                <el-dropdown-menu>
+                  <el-dropdown-item @click="goProfile">个人信息</el-dropdown-item>
+                  <el-dropdown-item divided @click="logout">退出登录</el-dropdown-item>
+                </el-dropdown-menu>
+              </template>
+            </el-dropdown>
           </div>
         </div>
       </el-header>
 
-      <el-container>
-        <el-aside width="200px">
+      <el-container class="main-container">
+        <el-aside width="220px" class="sidebar-aside">
           <el-menu
-            default-active="1"
+            :default-active="activeMenu"
             class="el-menu-vertical"
-            background-color="#545c64"
-            text-color="#fff"
-            active-text-color="#ffd04b"
+            background-color="#304156"
+            text-color="#bfcbd9"
+            active-text-color="#409eff"
           >
-            <!-- ✅ 合并后只保留“我的考试” -->
-            <el-menu-item index="1" @click="activeMenu = 'my-exams'">
+            <el-menu-item index="my-exams" @click="activeMenu = 'my-exams'">
+              <i class="el-icon-document-copy"></i>
               <span>我的考试</span>
             </el-menu-item>
-            <el-menu-item index="2" @click="activeMenu = 'my-results'">
+            <el-menu-item index="my-results" @click="activeMenu = 'my-results'">
+              <i class="el-icon-data-line"></i>
               <span>我的成绩</span>
             </el-menu-item>
-            <el-menu-item index="3" @click="navigateToExamList">
+            <el-menu-item index="exam-center" @click="navigateToExamList">
+              <i class="el-icon-monitor"></i>
               <span>考试中心</span>
             </el-menu-item>
           </el-menu>
         </el-aside>
 
-        <el-main>
-          <!-- ✅ 我的考试（合并 可参加考试 + 我的考试） -->
-          <div v-if="activeMenu === 'my-exams'">
-            <h2>我的考试</h2>
-            <el-table :data="myExamList" style="width: 100%">
-              <el-table-column prop="examSessionId" label="考试场次ID" width="120" />
-              <el-table-column prop="examTitle" label="考试标题" />
-              <el-table-column prop="durationMinutes" label="考试时长(分钟)" width="150" />
-              <el-table-column prop="examPaperId" label="试卷ID" width="100" />
-              <el-table-column prop="startTime" label="开始时间" width="180" />
-              <el-table-column prop="endTime" label="结束时间" width="180" />
-              <el-table-column prop="status" label="状态" width="120">
-                <template #default="scope">
-                  <el-tag :type="getUnifiedStatusType(scope.row.status)">{{ scope.row.status }}</el-tag>
-                </template>
-              </el-table-column>
-            </el-table>
+        <el-main class="app-content">
+          <!-- ✅ 我的考试 -->
+          <div v-if="activeMenu === 'my-exams'" class="content-wrapper">
+            <div class="page-header">
+              <h2 class="page-title">我的考试</h2>
+            </div>
+            <el-card shadow="hover">
+              <el-table :data="myExamList" style="width: 100%" border stripe>
+                <el-table-column prop="examSessionId" label="场次ID" width="100" align="center" />
+                <el-table-column prop="examTitle" label="考试标题" show-overflow-tooltip />
+                <el-table-column prop="durationMinutes" label="时长(分钟)" width="120" align="center" />
+                <el-table-column prop="startTime" label="开始时间" width="180" align="center" />
+                <el-table-column prop="endTime" label="结束时间" width="180" align="center" />
+                <el-table-column prop="status" label="状态" width="100" align="center">
+                  <template #default="scope">
+                    <el-tag :type="getUnifiedStatusType(scope.row.status)" size="small">{{ scope.row.status }}</el-tag>
+                  </template>
+                </el-table-column>
+              </el-table>
+            </el-card>
           </div>
 
           <!-- ✅ 我的成绩 -->
-          <div v-if="activeMenu === 'my-results'">
-            <h2>我的成绩</h2>
-            <el-table :data="myResults" style="width: 100%">
-              <el-table-column prop="examTitle" label="考试标题" />
-              <el-table-column prop="score" label="得分" width="100" />
-              <el-table-column prop="totalScore" label="总分" width="100" />
-              <el-table-column label="得分率" width="120">
-                <template #default="scope">
-                  <!-- 中文注释：totalScore=0 时做兜底，避免 NaN% -->
-                  <span v-if="!scope.row.totalScore || scope.row.totalScore === 0">0%</span>
-                  <span v-else>{{ Math.round((scope.row.score / scope.row.totalScore) * 100) }}%</span>
-                </template>
-              </el-table-column>
-              <el-table-column prop="submitTime" label="提交时间" width="180" />
-              <!-- 操作列先保留但禁用：后续你要做“详情”时再开启 -->
-              <el-table-column label="操作" width="120">
-                <template #default="scope">
-                  <el-button size="small" @click="openResultDetail(scope.row)">查看详情</el-button>
-                </template>
-              </el-table-column>
-            </el-table>
+          <div v-if="activeMenu === 'my-results'" class="content-wrapper">
+            <div class="page-header">
+              <h2 class="page-title">我的成绩</h2>
+            </div>
+            <el-card shadow="hover">
+              <el-table :data="myResults" style="width: 100%" border stripe>
+                <el-table-column prop="examTitle" label="考试标题" show-overflow-tooltip />
+                <el-table-column prop="score" label="得分" width="100" align="center">
+                  <template #default="scope">
+                    <span style="font-weight: bold; color: #409eff;">{{ scope.row.score }}</span>
+                  </template>
+                </el-table-column>
+                <el-table-column prop="totalScore" label="总分" width="100" align="center" />
+                <el-table-column label="得分率" width="120" align="center">
+                  <template #default="scope">
+                    <el-progress
+                      :percentage="!scope.row.totalScore ? 0 : Math.round((scope.row.score / scope.row.totalScore) * 100)"
+                      :status="!scope.row.totalScore ? 'exception' : (scope.row.score / scope.row.totalScore >= 0.6 ? 'success' : 'warning')"
+                    />
+                  </template>
+                </el-table-column>
+                <el-table-column prop="submitTime" label="提交时间" width="180" align="center" />
+                <el-table-column label="操作" width="120" align="center">
+                  <template #default="scope">
+                    <el-button size="small" type="primary" link @click="openResultDetail(scope.row)">查看详情</el-button>
+                  </template>
+                </el-table-column>
+              </el-table>
+            </el-card>
           </div>
 
           <!-- ✅ 成绩详情弹窗 -->
-          <el-dialog v-model="detailDialogVisible" title="成绩详情" width="80%">
-            <div v-if="detailLoading" style="padding: 12px;">加载中...</div>
-            <div v-else-if="detailError" style="padding: 12px; color: #f56c6c;">{{ detailError }}</div>
+          <el-dialog v-model="detailDialogVisible" title="成绩详情" width="70%" custom-class="detail-dialog">
+            <div v-if="detailLoading" class="loading-wrapper">
+              <el-icon class="is-loading"><Loading /></el-icon> 加载中...
+            </div>
+            <div v-else-if="detailError" class="error-wrapper">
+              <el-alert :title="detailError" type="error" show-icon :closable="false" />
+            </div>
             <div v-else>
-              <div style="margin-bottom: 12px; display: flex; gap: 18px; flex-wrap: wrap;">
-                <div><b>考试：</b>{{ resultDetail?.examTitle }}</div>
-                <div><b>得分：</b>{{ resultDetail?.score ?? 0 }} / {{ resultDetail?.totalScore ?? 0 }}</div>
+              <div class="detail-header">
+                <div class="detail-item">
+                  <span class="label">考试：</span>
+                  <span class="value">{{ resultDetail?.examTitle }}</span>
+                </div>
+                <div class="detail-item">
+                  <span class="label">得分：</span>
+                  <span class="value score">{{ resultDetail?.score ?? 0 }} / {{ resultDetail?.totalScore ?? 0 }}</span>
+                </div>
               </div>
 
-              <el-table :data="resultDetail?.items || []" style="width: 100%">
-                <el-table-column prop="questionId" label="题目ID" width="100" />
-                <el-table-column prop="title" label="题干" />
-                <el-table-column label="题型" width="120">
+              <el-table :data="resultDetail?.items || []" style="width: 100%" border stripe>
+                <el-table-column prop="questionId" label="题号" width="80" align="center" />
+                <el-table-column prop="title" label="题干" show-overflow-tooltip />
+                <el-table-column label="题型" width="100" align="center">
                   <template #default="scope">
-                    {{ scope.row.typeLabel || toTypeLabel(scope.row.type) }}
+                    <el-tag size="small" effect="plain">{{ scope.row.typeLabel || toTypeLabel(scope.row.type) }}</el-tag>
                   </template>
                 </el-table-column>
-                <el-table-column prop="questionScore" label="分值" width="80" />
+                <el-table-column prop="questionScore" label="分值" width="80" align="center" />
 
-                <!-- 正确答案：绿色；主观题显示“参考答案”字样 -->
-                <el-table-column label="正确答案" width="140">
+                <el-table-column label="正确答案" width="180">
                   <template #default="scope">
                     <span :style="getCorrectAnswerStyle(scope.row)">
                       {{ formatCorrectAnswer(scope.row) }}
@@ -105,7 +141,6 @@
                   </template>
                 </el-table-column>
 
-                <!-- 我的答案：对则绿色，错则红色 -->
                 <el-table-column label="我的答案" width="180">
                   <template #default="scope">
                     <span :style="getMyAnswerStyle(scope.row)">
@@ -114,10 +149,10 @@
                   </template>
                 </el-table-column>
 
-                <el-table-column prop="score" label="得分" width="80" />
-                <el-table-column prop="gradingStatus" label="批改状态" width="100">
+                <el-table-column prop="score" label="得分" width="80" align="center" />
+                <el-table-column prop="gradingStatus" label="批改状态" width="100" align="center">
                   <template #default="scope">
-                    <el-tag :type="scope.row.gradingStatus === '已批改' ? 'success' : 'info'">
+                    <el-tag size="small" :type="scope.row.gradingStatus === '已批改' ? 'success' : 'info'">
                       {{ scope.row.gradingStatus }}
                     </el-tag>
                   </template>
@@ -135,11 +170,13 @@
 import { ref, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { ElMessage } from "element-plus";
+import { Loading } from '@element-plus/icons-vue';
 import request from "../utils/request";
 import api from "../config/api";
 
 export default {
   name: "StudentDashboardView",
+  components: { Loading },
   setup() {
     const router = useRouter();
     const username = ref(localStorage.getItem("username"));
@@ -216,11 +253,22 @@ export default {
       }
     };
 
+    const goProfile = () => {
+      router.push('/profile');
+    };
+
     // 退出登录
-    const logout = () => {
+    const logout = async () => {
+      try {
+        await request.post('/api/users/logout');
+      } catch (e) {
+        // ignore
+      }
       localStorage.removeItem("token");
       localStorage.removeItem("userRole");
       localStorage.removeItem("username");
+      localStorage.removeItem("userId");
+      localStorage.removeItem("user");
       router.push("/login");
     };
 
@@ -318,6 +366,7 @@ export default {
       myExamList,
       myResults,
       getUnifiedStatusType,
+      goProfile,
       logout,
       navigateToExamList,
       detailDialogVisible,
@@ -337,19 +386,143 @@ export default {
 <style scoped>
 .dashboard-container {
   height: 100vh;
+  background-color: #f0f2f5;
+  font-family: 'Helvetica Neue', Helvetica, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', '微软雅黑', Arial, sans-serif;
 }
 
-.header-content {
+.full-height {
+  height: 100%;
+}
+
+/* Header Styles */
+.app-header {
+  background: #fff;
+  box-shadow: 0 1px 4px rgba(0, 21, 41, 0.08);
+  padding: 0 20px;
+  height: 60px;
+  line-height: 60px;
+  z-index: 10;
+}
+
+.header-inner {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  height: 100%;
 }
 
-.el-aside {
-  background-color: #545c64;
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #304156;
+}
+
+.logo h1 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.welcome-text {
+  font-size: 14px;
+  color: #606266;
+}
+
+.user-avatar {
+  cursor: pointer;
+  background-color: #409eff;
+}
+
+.el-dropdown-link {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+}
+
+/* Sidebar Styles */
+.sidebar-aside {
+  background-color: #304156;
+  box-shadow: 2px 0 6px rgba(0, 21, 41, 0.35);
+  z-index: 9;
 }
 
 .el-menu-vertical {
-  height: 100%;
+  border-right: none;
+}
+
+/* Main Content Styles */
+.app-content {
+  padding: 20px;
+  background-color: #f0f2f5;
+  overflow-y: auto;
+}
+
+.content-wrapper {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.page-title {
+  font-size: 24px;
+  color: #303133;
+  margin: 0;
+  padding-left: 12px;
+  border-left: 4px solid #409eff;
+  line-height: 1.2;
+}
+
+/* Detail Dialog */
+.loading-wrapper, .error-wrapper {
+  padding: 40px;
+  text-align: center;
+  font-size: 16px;
+  color: #606266;
+}
+
+.detail-header {
+  background: #f5f7fa;
+  padding: 15px 20px;
+  border-radius: 4px;
+  margin-bottom: 20px;
+  display: flex;
+  gap: 40px;
+  border: 1px solid #ebeef5;
+}
+
+.detail-item {
+  display: flex;
+  align-items: center;
+  font-size: 16px;
+}
+
+.detail-item .label {
+  color: #909399;
+  margin-right: 8px;
+}
+
+.detail-item .value {
+  color: #303133;
+  font-weight: 500;
+}
+
+.detail-item .value.score {
+  color: #409eff;
+  font-size: 20px;
+  font-weight: bold;
 }
 </style>

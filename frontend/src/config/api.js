@@ -5,6 +5,11 @@ const api = {
     // 用户相关API
     USER_LOGIN: "/api/users/login",
     USER_REGISTER: "/api/users/register",
+    USER_LOGOUT: "/api/users/logout",
+    USER_CURRENT: "/api/users/current",
+    USER_CAPTCHA: "/api/users/captcha",
+    USER_UPDATE_USERNAME: "/api/users/update-username",
+    USER_UPDATE_PASSWORD: "/api/users/update-password",
 
     // 题目相关API
     QUESTIONS: "/api/questions",
