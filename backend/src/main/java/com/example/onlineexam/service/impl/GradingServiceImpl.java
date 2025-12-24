@@ -19,20 +19,20 @@ public class GradingServiceImpl implements GradingService {
     private final StudentExamRepository studentExamRepository;
     private final StudentAnswerRepository studentAnswerRepository;
     private final ExamSessionRepository examSessionRepository;
-    private final ExamPaperRepository examPaperRepository;
+    // private final ExamPaperRepository examPaperRepository; // 未使用，移除
     private final ExamQuestionRepository examQuestionRepository;
     private final QuestionRepository questionRepository;
 
     public GradingServiceImpl(StudentExamRepository studentExamRepository,
                               StudentAnswerRepository studentAnswerRepository,
                               ExamSessionRepository examSessionRepository,
-                              ExamPaperRepository examPaperRepository,
+                              /*ExamPaperRepository examPaperRepository,*/
                               ExamQuestionRepository examQuestionRepository,
                               QuestionRepository questionRepository) {
         this.studentExamRepository = studentExamRepository;
         this.studentAnswerRepository = studentAnswerRepository;
         this.examSessionRepository = examSessionRepository;
-        this.examPaperRepository = examPaperRepository;
+        // this.examPaperRepository = examPaperRepository;
         this.examQuestionRepository = examQuestionRepository;
         this.questionRepository = questionRepository;
     }
@@ -112,10 +112,31 @@ public class GradingServiceImpl implements GradingService {
         // 7. 批量保存更新后的学生答案
         studentAnswerRepository.saveAll(studentAnswers);
 
-        // 8. 更新学生考试总分和状态
-        studentExam.setTotalScore(totalScore);
-        // 如果还有主观题未批改，可以保留“已提交”；这里只实现客观题自动判分，直接标记为“已批改”
-        studentExam.setStatus("已批改");
+        // ============================
+        // 8. 更新 student_exams 状态
+        // ============================
+        // 中文注释：自动判分只处理客观题。
+        // - 如果存在主观题答案且还未批改，则 StudentExam 应保持“已提交”。
+        // - 只有当不存在“未批改主观题”时，才标记为“已批改”。
+        boolean hasUnGradedSubjective = false;
+        for (ExamQuestion eq : examQuestions) {
+            Question q = questionMap.get(eq.getQuestionId());
+            if (q == null) continue;
+            if (!"subjective".equals(q.getType())) continue;
+
+            StudentAnswer a = answerMap.get(eq.getQuestionId());
+            if (a == null) {
+                // 有主观题但没有答案：按未批改处理
+                hasUnGradedSubjective = true;
+                break;
+            }
+            if (!"已批改".equals(a.getGradingStatus())) {
+                hasUnGradedSubjective = true;
+                break;
+            }
+        }
+
+        studentExam.setStatus(hasUnGradedSubjective ? "已提交" : "已批改");
         studentExamRepository.save(studentExam);
 
         // 9. 封装判分结果 DTO，返回给前端

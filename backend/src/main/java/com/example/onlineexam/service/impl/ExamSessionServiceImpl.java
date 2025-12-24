@@ -72,16 +72,67 @@ public class ExamSessionServiceImpl implements ExamSessionService {
     
     @Override
     public List<ExamSession> getExamSessionsByTeacherId(Long teacherId) {
-        return examSessionRepository.findByCreatedBy(teacherId);
+        List<ExamSession> list = examSessionRepository.findByCreatedBy(teacherId);
+        // 中文注释：每次查询时根据当前时间刷新状态，避免“昨天创建的场次今天还显示进行中”的问题
+        refreshAndPersistStatusIfNeeded(list);
+        return list;
     }
     
     @Override
     public List<ExamSession> getAvailableExamSessions(LocalDateTime currentTime) {
-        // 更严格：只返回“当前时刻在时间窗内的考试”，避免未分配/未来考试被误当成可参加
-        // 学生真正可参加列表请使用 ExamAssignment + StudentExamService.getMyExamList
-        return examSessionRepository.findByEndTimeAfterAndStartTimeBefore(currentTime, currentTime);
+        List<ExamSession> list = examSessionRepository.findByEndTimeAfterAndStartTimeBefore(currentTime, currentTime);
+        // 中文注释：可参加列表同样刷新一下状态（主要是兜底数据异常/手工改时间）
+        refreshAndPersistStatusIfNeeded(list);
+        return list;
     }
-    
+
+    @Override
+    public List<ExamSession> getAllExamSessionsByTeacherId(Long teacherId) {
+        if (teacherId == null) {
+            throw new IllegalArgumentException("teacherId 不能为空");
+        }
+        List<ExamSession> list = examSessionRepository.findByCreatedBy(teacherId);
+        refreshAndPersistStatusIfNeeded(list);
+        return list;
+    }
+
+    /**
+     * 中文注释：根据 startTime/endTime 动态计算正确状态。
+     * - 未开始：now < startTime
+     * - 进行中：startTime <= now < endTime
+     * - 已结束：now >= endTime
+     *
+     * 并在状态发生变化时写回数据库（保证列表页刷新后状态正确）。
+     */
+    private void refreshAndPersistStatusIfNeeded(List<ExamSession> sessions) {
+        if (sessions == null || sessions.isEmpty()) return;
+
+        LocalDateTime now = LocalDateTime.now();
+        boolean changed = false;
+
+        for (ExamSession s : sessions) {
+            if (s == null || s.getStartTime() == null || s.getEndTime() == null) continue;
+            String newStatus;
+            if (now.isBefore(s.getStartTime())) {
+                newStatus = "未开始";
+            } else if (now.isBefore(s.getEndTime())) {
+                newStatus = "进行中";
+            } else {
+                newStatus = "已结束";
+            }
+
+            if (s.getStatus() == null || !s.getStatus().equals(newStatus)) {
+                s.setStatus(newStatus);
+                changed = true;
+            }
+        }
+
+        if (changed) {
+            // 中文注释：批量保存（JPA 会按主键更新）
+            examSessionRepository.saveAll(sessions);
+        }
+    }
+
     @Override
     public void updateExamSessionStatus(Long id, String status) {
         ExamSession examSession = getExamSessionById(id);
@@ -137,12 +188,5 @@ public class ExamSessionServiceImpl implements ExamSessionService {
 
         return examSessionRepository.save(session);
     }
-
-    @Override
-    public List<ExamSession> getAllExamSessionsByTeacherId(Long teacherId) {
-        if (teacherId == null) {
-            throw new IllegalArgumentException("teacherId 不能为空");
-        }
-        return examSessionRepository.findByCreatedBy(teacherId);
-    }
 }
+

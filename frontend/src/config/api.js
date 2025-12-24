@@ -51,6 +51,28 @@ const api = {
     EXAM_ASSIGNMENTS_MY: '/api/exam-assignments/my',
     EXAM_ASSIGNMENTS_COUNT: '/api/exam-assignments/count',
     EXAM_ASSIGNMENTS_CLEAR: '/api/exam-assignments/clear',
+
+    // ============================
+    // 第10周：成绩分析（教师端）
+    // ============================
+    SCORES_TEACHER: '/api/scores/teacher',
+    SCORES_TEACHER_STATS: '/api/scores/teacher/stats',
+    // 中文注释：统一导出为标准 Excel（.xlsx）
+    SCORES_TEACHER_EXPORT_XLSX: '/api/scores/teacher/export-xlsx',
+
+    // ============================
+    // 第11周：考试监控（简化版）
+    // ============================
+    MONITOR_HEARTBEAT: '/api/monitor/heartbeat',
+    MONITOR_SCREEN_SWITCH: '/api/monitor/screen-switch',
+    MONITOR_TEACHER: '/api/monitor/teacher',
+
+    // ============================
+    // 教师端：主观题批改
+    // ============================
+    TEACHER_GRADING_PENDING: '/api/teacher-grading/pending',
+    TEACHER_GRADING_DETAIL: '/api/teacher-grading/detail',
+    TEACHER_GRADING_GRADE: '/api/teacher-grading/grade',
 };
 
 export default api;

@@ -75,10 +75,14 @@
           </template>
         </el-table-column>
 
-        <el-table-column label="操作" width="260">
+        <el-table-column label="操作" width="320">
           <template #default="scope">
             <el-button size="small" type="primary" @click="openAssignDialog(scope.row)">分配学生</el-button>
+            <el-button size="small" @click="goScorePage(scope.row)">成绩分析</el-button>
+            <el-button size="small" @click="goMonitorPage(scope.row)">监控</el-button>
             <el-button size="small" type="danger" @click="removeSession(scope.row)">删除</el-button>
+            <!-- 新增：主观题批改按钮 -->
+            <el-button size="small" type="success" @click="goGradingPage(scope.row)">批改主观题</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -543,6 +547,21 @@ watch([studentKeyword, assignDialogVisible], async () => {
     console.warn('同步表格勾选状态失败:', e);
   }
 });
+
+const goScorePage = (row) => {
+  if (!row || !row.id) return;
+  router.push({ path: '/teacher/scores', query: { examSessionId: String(row.id) } });
+};
+
+const goMonitorPage = (row) => {
+  if (!row || !row.id) return;
+  router.push({ path: '/teacher/monitor', query: { examSessionId: String(row.id) } });
+};
+
+// 新增：进入主观题批改页面
+const goGradingPage = (row) => {
+  router.push({ path: '/teacher/grading', query: { examSessionId: row.id } });
+};
 
 onMounted(async () => {
   await loadExamPapers();

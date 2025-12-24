@@ -3,6 +3,7 @@ package com.example.onlineexam.controller;
 import com.example.onlineexam.dto.ApiResponse;
 import com.example.onlineexam.entity.ExamSession;
 import com.example.onlineexam.service.ExamSessionService;
+import jakarta.servlet.http.HttpSession;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
@@ -120,11 +121,32 @@ public class ExamSessionController {
     }
 
     /**
-     * 教师端：获取自己所有考试场次（考试管理用，不按时间过滤）
+     * 教师端：获取自己所有考试场次（考试管理/成绩分析/监控用，不按时间过滤）
+     *
+     * 修复说明：
+     * - 之前要求必须传 createdBy，前端没有传就会 400（Bad Request）。
+     * - 现在改为：优先从 session 取 userId（更真实也更安全），并兼容旧版 createdBy 参数。
      */
     @GetMapping("/teacher")
-    public ApiResponse listTeacherAll(@RequestParam Long createdBy) {
-        List<ExamSession> list = examSessionService.getAllExamSessionsByTeacherId(createdBy);
+    public ApiResponse listTeacherAll(@RequestParam(required = false) Long createdBy, HttpSession session) {
+        String role = (String) session.getAttribute("userRole");
+        if (role == null) {
+            return ApiResponse.error("用户未登录");
+        }
+        if (!"TEACHER".equals(role)) {
+            return ApiResponse.error("只有教师可以查看考试场次");
+        }
+
+        // 中文注释：优先使用登录态里的教师ID；如果没有(兼容历史问题)，再用请求参数 createdBy
+        Long teacherId = (Long) session.getAttribute("userId");
+        if (teacherId == null) {
+            teacherId = createdBy;
+        }
+        if (teacherId == null) {
+            return ApiResponse.error("无法获取教师ID，请重新登录后再试");
+        }
+
+        List<ExamSession> list = examSessionService.getAllExamSessionsByTeacherId(teacherId);
         return ApiResponse.success("查询教师考试场次成功", list);
     }
 }

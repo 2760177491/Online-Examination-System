@@ -121,6 +121,7 @@
 import { ref, onMounted, onBeforeUnmount } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import request from '../utils/request';
+import api from '../config/api';
 
 export default {
   name: 'ExamTakingView',
@@ -146,6 +147,44 @@ export default {
 
     let timer = null;
     let autoSaveTimer = null;
+    let heartbeatTimer = null;
+
+    const getCurrentStudentId = () => {
+      const raw = localStorage.getItem('userId');
+      const n = raw ? Number(raw) : NaN;
+      return Number.isFinite(n) ? n : null;
+    };
+
+    // ===============
+    // 第11周：监控（简化版）——心跳/切屏
+    // ===============
+    const startHeartbeat = () => {
+      const sid = getCurrentStudentId();
+      if (!sid || !examSession.value?.id) return;
+
+      // 先立即上报一次
+      request.post(api.MONITOR_HEARTBEAT, { examSessionId: examSession.value.id, studentId: sid }).catch(() => {});
+
+      // 每20秒上报一次心跳
+      heartbeatTimer = setInterval(() => {
+        request.post(api.MONITOR_HEARTBEAT, { examSessionId: examSession.value.id, studentId: sid }).catch(() => {});
+      }, 20000);
+    };
+
+    const stopHeartbeat = () => {
+      if (heartbeatTimer) {
+        clearInterval(heartbeatTimer);
+        heartbeatTimer = null;
+      }
+    };
+
+    const onVisibilityChange = () => {
+      // 中文注释：页面从可见->不可见或不可见->可见都算一次切换
+      // 这里只记录次数，不做强制限制（答辩演示更友好）
+      const sid = getCurrentStudentId();
+      if (!sid || !examSession.value?.id) return;
+      request.post(api.MONITOR_SCREEN_SWITCH, { examSessionId: examSession.value.id, studentId: sid }).catch(() => {});
+    };
 
     // ===============
     // 工具方法
@@ -260,6 +299,11 @@ export default {
       timer = setInterval(() => {
         remainingTime.value = Math.max(0, remainingTime.value - 1);
         if (remainingTime.value === 0) {
+          // 中文注释：倒计时结束后只自动提交一次，避免重复提交
+          if (timer) {
+            clearInterval(timer);
+            timer = null;
+          }
           submitExam();
         }
       }, 1000);
@@ -394,14 +438,19 @@ export default {
     onMounted(async () => {
       await loadExamInfo();
       startAutoSave();
+      startHeartbeat();
+
+      document.addEventListener('visibilitychange', onVisibilityChange);
     });
 
     // 离开页面
     onBeforeUnmount(async () => {
       stopAutoSave();
+      stopHeartbeat();
       if (timer) {
         clearInterval(timer);
       }
+      document.removeEventListener('visibilitychange', onVisibilityChange);
       // 离开页面前尽量保存一次草稿（失败也不影响离开）
       try {
         const answers = buildAnswerPayload();

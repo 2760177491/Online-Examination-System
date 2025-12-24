@@ -32,6 +32,9 @@
             <el-menu-item index="4" @click="activeMenu = 'results'">
               <span>成绩管理</span>
             </el-menu-item>
+            <el-menu-item index="5" @click="goToGrading">
+              <span>主观题批改</span>
+            </el-menu-item>
           </el-menu>
         </el-aside>
 
@@ -657,6 +660,10 @@ export default {
       router.push('/teacher/exam-sessions');
     };
 
+    const goToGrading = () => {
+      router.push('/teacher/grading');
+    };
+
     // ============================
     // 题库筛选按钮（补回，避免模板引用未定义）
     // ============================
@@ -707,6 +714,9 @@ export default {
 
       // 考试管理
       goToExamSessions,
+
+      // 主观题批改
+      goToGrading,
 
       // 筛选相关
       questionFilter,

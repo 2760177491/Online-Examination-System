@@ -24,4 +24,10 @@ public interface StudentExamRepository extends JpaRepository<StudentExam, Long> 
      * 根据考试场次ID查询所有学生的考试记录
      */
     List<StudentExam> findByExamSessionId(Long examSessionId);
+
+    /** 查询某场考试已提交/已批改的记录 */
+    List<StudentExam> findByExamSessionIdAndStatusIn(Long examSessionId, List<String> statuses);
+
+    /** 统计某场考试已提交/已批改人数 */
+    long countByExamSessionIdAndStatusIn(Long examSessionId, List<String> statuses);
 }

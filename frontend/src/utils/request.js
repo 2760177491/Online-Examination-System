@@ -30,7 +30,16 @@ request.interceptors.request.use(
 // 响应拦截器
 request.interceptors.response.use(
   (response) => {
-    // 对响应数据做点什么
+    // ============================
+    // 关键修复：文件下载（blob/arraybuffer）不能直接 return response.data
+    // 否则会丢失 headers，且部分场景下 data 会被转成字符串，最终下载文件内容变成 "undefined"
+    // ============================
+    const rt = response?.config?.responseType;
+    if (rt === "blob" || rt === "arraybuffer") {
+      return response; // 保留 headers + 二进制数据
+    }
+
+    // 普通 JSON 接口保持原逻辑
     return response.data;
   },
   (error) => {
