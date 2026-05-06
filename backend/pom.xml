@@ -51,6 +51,13 @@
             <scope>test</scope>
         </dependency>
 
+        <!-- H2 内存数据库（自动化测试用） -->
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <scope>test</scope>
+        </dependency>
+
         <!-- Spring Boot DevTools (开发热部署) -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
